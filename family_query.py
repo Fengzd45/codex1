@@ -1,9 +1,14 @@
 import json
 import re
+import os
 from collections import defaultdict, deque
 from pathlib import Path
 
-DATA_FILE = Path(__file__).with_name('family_data.jsonl')
+# ======================
+# 🔒 部署关键修改：路径兼容 Render
+# ======================
+DATA_FILE = Path(__file__).parent / 'family_data.jsonl'
+
 UP_ANCESTOR_TERMS = [
     ('祖', '外祖'),
     ('曾祖', '外曾祖'),
@@ -433,26 +438,19 @@ def print_relationships(people, start):
 
 def main():
     if not DATA_FILE.exists():
-        raise FileNotFoundError(f'未找到数据文件: {DATA_FILE}')
+        print(f"⚠️  未找到数据文件: {DATA_FILE}")
+        return
+        
     people = load_family_data(DATA_FILE)
     print(f'总记录数：{len(people)}')
-    while True:
-        try:
-            name = input('请输入姓名（输入0退出）：').strip()
-        except EOFError:
-            print('\n输入结束，程序退出。')
-            break
-        if name == '0':
-            print('程序结束。')
-            break
-        if not name:
-            print('姓名不能为空，请重新输入。')
-            continue
-        if name not in people:
-            print(f'未找到姓名：{name}')
-            continue
-        print_relationships(people, name)
-
+    
+    # ======================
+    # 🚀 Render 启动后自动运行示例（不会卡住部署）
+    # ======================
+    if people:
+        first_person = next(iter(people.keys()))
+        print(f"\n🎯 默认展示第一位：{first_person}")
+        print_relationships(people, first_person)
 
 if __name__ == '__main__':
     main()
