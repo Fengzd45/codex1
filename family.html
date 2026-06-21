@@ -97,7 +97,7 @@
             <button id="searchBtn" disabled>🔍 查询关系</button>
             <button id="treeBtn" disabled>🌳 图形家族树（可交互）</button>
         </div>
-        <div class="output" id="output"><pre>正在加载家谱数据...</pre></div>
+        <div class="output" id="output"><pre>请先点击「加载资料库」授权家谱数据...</pre></div>
     </div>
     <div class="footer">家族关系 | 点击姓名弹窗查看资料 | 线上模式自动加载 GitHub 资料</div>
 </div>
@@ -130,7 +130,7 @@
 </div>
 
 <script>
-// ===================== Person类与关系构建（原封不动） =====================
+// ===================== Person类与关系构建 =====================
 class Person {
     constructor(data) {
         this.name = data.n;
@@ -187,7 +187,7 @@ function escapeHtml(str) {
     return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
 }
 
-// ===================== 关系查询函数（原封不动） =====================
+// ===================== 关系查询函数 =====================
 function bfsRelationships(startName, people) {
     const start = people[startName];
     if (!start) return {};
@@ -559,7 +559,7 @@ function printRelationshipsWithClick(startName, relations, people) {
 const isOnline = window.location.protocol === 'https:';
 const GITHUB_BASE = 'https://fengzd45.github.io/codex1/%E8%B5%84%E6%96%99/';
 
-// ===================== 多媒体弹窗（原封不动） =====================
+// ===================== 多媒体弹窗 =====================
 let folderHandle = null;
 let manifestCache = null;
 const folderStatusSpan = document.getElementById('folderStatus');
@@ -656,7 +656,6 @@ async function previewLocalFile(file, fileName) {
     setTimeout(() => URL.revokeObjectURL(url), 60000);
     return html;
 }
-// 修改 selectFolderBtn 点击事件：选择文件夹，自动读取 family_data.jsonl 和资料目录
 selectFolderBtn.onclick = async () => {
     if (isOnline) {
         folderStatusSpan.innerHTML = `🌐 线上模式：资料自动从 GitHub 加载，无需授权。`;
@@ -670,7 +669,6 @@ selectFolderBtn.onclick = async () => {
         let foundData = false;
         let jsonlContent = '';
 
-        // 1. 尝试读取 family_data.jsonl
         try {
             const fileHandle = await rootHandle.getFileHandle('family_data.jsonl');
             const file = await fileHandle.getFile();
@@ -685,10 +683,8 @@ selectFolderBtn.onclick = async () => {
             }
         } catch (e) {
             console.warn('读取 family_data.jsonl 失败:', e);
-            // 继续尝试授权资料文件夹
         }
 
-        // 2. 查找并授权“资料”文件夹
         let foundFolder = null;
         for await (const entry of rootHandle.values()) {
             if (entry.kind === 'directory' && entry.name === '资料') {
@@ -701,13 +697,11 @@ selectFolderBtn.onclick = async () => {
             foundData = true;
         }
 
-        // 3. 反馈结果
         if (foundJsonl && foundData) {
             folderStatusSpan.innerHTML = `✅ 成功加载 family_data.jsonl（${Object.keys(peopleData).length} 人）并授权「资料」文件夹。`;
             folderStatusSpan.style.color = '#2c5a2c';
             enableUI();
             outputPre.innerHTML = `<pre>✅ 家谱数据已加载！共 ${Object.keys(peopleData).length} 位人物。<br>已授权「资料」文件夹，点击姓名可查看多媒体资料。</pre>`;
-            // 设置默认姓名
             if (peopleData['冯宗德']) document.getElementById('startName').value = '冯宗德';
             else {
                 const first = Object.keys(peopleData)[0] || '';
@@ -726,7 +720,6 @@ selectFolderBtn.onclick = async () => {
         } else if (!foundJsonl && foundData) {
             folderStatusSpan.innerHTML = `⚠️ 已授权「资料」文件夹，但未找到 family_data.jsonl 文件，请检查目录。`;
             folderStatusSpan.style.color = '#c00';
-            // 保留 folderHandle，但数据未加载，不能启用UI
         } else {
             folderStatusSpan.innerHTML = `❌ 所选目录中未找到 family_data.jsonl 和「资料」文件夹，请重新选择。`;
             folderStatusSpan.style.color = '#c00';
@@ -806,7 +799,7 @@ async function showPersonMediaInModal(personName) {
     }
 }
 
-// ===================== 可交互图形树（原封不动） =====================
+// ===================== 可交互图形树 =====================
 let treeState = {
     canvas: null, ctx: null, rootName: "", baseNodes: new Set(), dynamicNodes: new Set(),
     expanded: new Set(), offsetX: 0, offsetY: 0, scale: 0.8, nodesList: []
@@ -974,7 +967,6 @@ function renderTree() {
     ctx.translate(treeState.offsetX, treeState.offsetY);
     ctx.scale(treeState.scale, treeState.scale);
     
-    // 亲子连线
     ctx.beginPath();
     ctx.strokeStyle = '#cca47d';
     ctx.lineWidth = 2.5;
@@ -995,7 +987,6 @@ function renderTree() {
     }
     ctx.stroke();
     
-    // 夫妻连线
     ctx.beginPath();
     ctx.strokeStyle = '#e74c3c';
     ctx.lineWidth = 2.8;
@@ -1018,7 +1009,6 @@ function renderTree() {
     }
     ctx.stroke();
     
-    // 绘制节点
     treeState.nodesList = [];
     for (const name of allNodes) {
         const p = peopleData[name];
@@ -1202,24 +1192,38 @@ let dataLoaded = false;
 function search() {
     const startName = document.getElementById('startName').value.trim();
     if (!startName) { outputPre.innerHTML = '<pre>请输入姓名</pre>'; return; }
+    if (!peopleData) {
+        outputPre.innerHTML = '<pre>❌ 数据未加载！请先点击「加载资料库」加载 family_data.jsonl。</pre>';
+        return;
+    }
     if (!peopleData[startName]) { outputPre.innerHTML = `<pre>❌ 错误：'${startName}' 不在家谱中。</pre>`; return; }
     outputPre.innerHTML = '<pre>正在查询关系...</pre>';
     setTimeout(() => {
-        const relations = bfsRelationships(startName, peopleData);
-        const outputText = printRelationshipsWithClick(startName, relations, peopleData);
-        outputPre.innerHTML = `<pre>========== 从 ${escapeHtml(startName)} 出发的家族关系树 ==========\n${outputText}</pre>`;
-        document.querySelectorAll('.clickable-name').forEach(el => {
-            el.onclick = (e) => {
-                const name = e.target.getAttribute('data-name');
-                if (name && peopleData[name]) showPersonMediaInModal(name);
-            };
-        });
+        // 【核心防御代码】：用 try...catch 包住渲染过程
+        try {
+            const relations = bfsRelationships(startName, peopleData);
+            const outputText = printRelationshipsWithClick(startName, relations, peopleData);
+            outputPre.innerHTML = `<pre>========== 从 ${escapeHtml(startName)} 出发的家族关系树 ==========\n${outputText}</pre>`;
+            document.querySelectorAll('.clickable-name').forEach(el => {
+                el.onclick = (e) => {
+                    const name = e.target.getAttribute('data-name');
+                    if (name && peopleData[name]) showPersonMediaInModal(name);
+                };
+            });
+        } catch (error) {
+            console.error("渲染家族树时发生致命错误，已拦截防止卡死:", error);
+            outputPre.innerHTML = `<pre>❌ 检测到数据异常，已阻止页面卡死。<br>请检查 family_data.jsonl 中是否包含“自身互为父子”、“空名字”等逻辑错误。<br><br>技术原因：${error.message}</pre>`;
+        }
     }, 50);
 }
 document.getElementById('searchBtn').addEventListener('click', search);
 document.getElementById('treeBtn').addEventListener('click', () => {
     let startName = document.getElementById('startName').value.trim();
     if (!startName) { alert('请先输入一个姓名'); return; }
+    if (!peopleData) {
+        alert('❌ 数据未加载！请先点击「加载资料库」加载 family_data.jsonl。');
+        return;
+    }
     if (!peopleData[startName]) { alert(`“${startName}” 不在家谱中`); return; }
     showTreeModal(startName);
 });
@@ -1236,30 +1240,38 @@ const toTopBtn = document.getElementById('toTopBtn');
 window.addEventListener('scroll', () => { toTopBtn.style.display = window.scrollY > 300 ? 'flex' : 'none'; });
 toTopBtn.addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); });
 
-// 初始状态：尝试 fetch 加载（适合http服务器），如果失败则显示提示
+// ===================== 真正纯净的自动加载逻辑 =====================
 async function tryAutoLoad() {
-    try {
-        const resp = await fetch('family_data.jsonl');
-        if (resp.ok) {
-            const text = await resp.text();
-            const parsed = parseJsonl(text);
-            if (Object.keys(parsed).length > 0) {
-                peopleData = parsed;
-                dataLoaded = true;
-                enableUI();
-                folderStatusSpan.innerHTML = `✅ 自动加载成功！共 ${Object.keys(peopleData).length} 位人物。`;
-                folderStatusSpan.style.color = '#2c5a2c';
-                outputPre.innerHTML = `<pre>✅ 自动加载 family_data.jsonl 成功！共 ${Object.keys(peopleData).length} 位人物。<br>如需多媒体资料，请点击「加载资料库」授权「资料」文件夹。</pre>`;
-                if (peopleData['冯宗德']) document.getElementById('startName').value = '冯宗德';
-                else {
-                    const first = Object.keys(peopleData)[0] || '';
-                    document.getElementById('startName').value = first;
+    // 只有在 https 或 http (如 Live Server、GitHub Pages) 环境下才尝试自动 fetch
+    if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+        try {
+            // 【核心修复】：使用严格的相对路径，不加斜杠！
+            const resp = await fetch('family_data.jsonl');
+            if (resp.ok) {
+                const text = await resp.text();
+                const parsed = parseJsonl(text);
+                if (Object.keys(parsed).length > 0) {
+                    peopleData = parsed;
+                    dataLoaded = true;
+                    enableUI();
+                    folderStatusSpan.innerHTML = `✅ 自动加载成功！共 ${Object.keys(peopleData).length} 位人物。`;
+                    folderStatusSpan.style.color = '#2c5a2c';
+                    outputPre.innerHTML = `<pre>✅ 自动加载 family_data.jsonl 成功！共 ${Object.keys(peopleData).length} 位人物。<br>如需多媒体资料，请点击「加载资料库」授权「资料」文件夹。</pre>`;
+                    if (peopleData['冯宗德']) document.getElementById('startName').value = '冯宗德';
+                    else {
+                        const first = Object.keys(peopleData)[0] || '';
+                        document.getElementById('startName').value = first;
+                    }
+                    return;
                 }
-                return;
             }
+        } catch(e) {
+            // 静默捕获错误，不卡死，不报错，直接降级到下面引导用户
+            console.warn("自动加载失败，降级至手动授权");
         }
-    } catch(e) {}
-    // 自动加载失败，显示提示
+    }
+
+    // 自动加载失败（或离线双击），显示提示
     folderStatusSpan.innerHTML = `📁 请点击「加载资料库」选择包含 family_data.jsonl 的文件夹。`;
     folderStatusSpan.style.color = '#8b5a2b';
     outputPre.innerHTML = `<pre>⏳ 未检测到 family_data.jsonl。<br><br>请点击上方「加载资料库」按钮，选择包含该文件及「资料」子文件夹的目录。</pre>`;
@@ -1267,10 +1279,7 @@ async function tryAutoLoad() {
 
 // 如果是在线模式（GitHub Pages），使用线上数据源
 if (isOnline) {
-    // 线上模式直接使用远程数据（此处可保留原内嵌数据，但为简化，仍使用自动加载）
-    // 但线上模式也可使用 fetch 加载同目录，但一般部署时会把 jsonl 放在同一路径。
     tryAutoLoad();
-    // 同时设置线上资料提示
     folderStatusSpan.innerHTML = `🌐 线上模式（GitHub Pages）· 资料自动加载，无需授权`;
     selectFolderBtn.textContent = '📂 线上模式已启用';
     selectFolderBtn.disabled = true;
@@ -1278,7 +1287,7 @@ if (isOnline) {
     selectFolderBtn.style.cursor = 'default';
     loadManifest();
 } else {
-    // 本地环境：尝试自动加载，若失败则等待用户点击按钮
+    // 本地环境：包含双击打开、手机文件管理器打开、Live Server启动等。
     tryAutoLoad();
 }
 
