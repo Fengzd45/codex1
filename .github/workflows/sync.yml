@@ -5,6 +5,65 @@ on:
     - cron: '0 16 * * *'      # 每天北京时间 0 点运行（UTC 16:00）
   workflow_dispatch:          # 允许手动在 GitHub 网页点按钮触发
   
+  repository_dispatch:
+    types: [feishu_form_submit]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PAT }}
+
+      - name: 安装 Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 安装依赖
+        run: |
+          pip install requests pypinyin
+
+      - name: 运行同步脚本（从飞书拉取数据）
+        env:
+          FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
+          FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
+          FEISHU_APP_TOKEN: ${{ secrets.FEISHU_APP_TOKEN }}
+          FEISHU_TABLE_ID: ${{ secrets.FEISHU_TABLE_ID }}
+          FEISHU_PWD_TABLE_ID: ${{ secrets.FEISHU_PWD_TABLE_ID }}
+        run: |
+          python sync_feishu_data.py
+
+      - name: 提交更新到仓库
+        run: |
+          git config user.name "家族同步机器人"
+          git config user.email "bot@family.com"
+          
+          # 🌟 修复核心：先强制把任何误入暂存区的 yml 文件踢出去
+          git reset HEAD .github/workflows/sync.yml || true
+          
+          # 🌟 修复核心：只精准添加修改的数据文件和资料文件夹，杜绝触碰工作流
+          git add family_data.jsonl manifest.json
+          if [ -d "资料" ]; then
+            git add 资料/
+          fi
+          
+          # 只有在真正有数据变动时才提交和强推
+          if ! git diff --staged --quiet; then
+            git commit -m "🤖 自动同步飞书数据 $(date '+%Y-%m-%d %H:%M')"
+            git push -f origin main
+          else
+            echo "没有发现家谱数据变动，跳过推送。"
+          finame: 家族数据自动同步（飞书→仓库）
+
+on:
+  schedule:
+    - cron: '0 16 * * *'      # 每天北京时间 0 点运行（UTC 16:00）
+  workflow_dispatch:          # 允许手动在 GitHub 网页点按钮触发
+  
   # 🌟 核心修改点：允许飞书表单提交时，通过 Webhook 带着暗号来立刻触发
   repository_dispatch:
     types: [feishu_form_submit]
