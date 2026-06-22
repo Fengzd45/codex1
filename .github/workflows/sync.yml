@@ -4,10 +4,10 @@ on:
   schedule:
     - cron: '0 16 * * *'      # 每天北京时间 0 点运行（UTC 16:00）
   workflow_dispatch:          # 允许手动在 GitHub 网页点按钮触发
-
-# 显式声明赋予 Actions 读写仓库代码的权限
-permissions:
-  contents: write
+  
+  # 🌟 核心修改点：允许飞书表单提交时，通过 Webhook 带着暗号来立刻触发
+  repository_dispatch:
+    types: [feishu_form_submit]
 
 jobs:
   sync:
@@ -17,7 +17,8 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }} # 使用系统自带Token，省去配置显式PAT的麻烦
+          # 依然使用你保险柜里配好的 PAT 来确保有推代码的最高权限
+          token: ${{ secrets.PAT }}
 
       - name: 安装 Python
         uses: actions/setup-python@v4
@@ -44,5 +45,4 @@ jobs:
           git config user.email "bot@family.com"
           git add family_data.jsonl 资料/ manifest.json || true
           git diff --staged --quiet || git commit -m "🤖 自动同步飞书数据 $(date '+%Y-%m-%d %H:%M')"
-          # 加上 -f 防止之前那种 408 超时导致的本地远程不匹配
           git push -f origin main
