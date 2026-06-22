@@ -5,6 +5,10 @@ on:
     - cron: '0 16 * * *'      # 每天北京时间 0 点运行（UTC 16:00）
   workflow_dispatch:          # 允许手动在 GitHub 网页点按钮触发
 
+# 显式声明赋予 Actions 读写仓库代码的权限
+permissions:
+  contents: write
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -13,8 +17,7 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v3
         with:
-          # 如果你没把 PAT 加到 Secrets，就去 GitHub Settings 里加一下
-          token: ${{ secrets.PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }} # 使用系统自带Token，省去配置显式PAT的麻烦
 
       - name: 安装 Python
         uses: actions/setup-python@v4
@@ -32,7 +35,6 @@ jobs:
           FEISHU_APP_TOKEN: ${{ secrets.FEISHU_APP_TOKEN }}
           FEISHU_TABLE_ID: ${{ secrets.FEISHU_TABLE_ID }}
           FEISHU_PWD_TABLE_ID: ${{ secrets.FEISHU_PWD_TABLE_ID }}
-        # 注意：把这里的 mmb.py 换成你真正上传的脚本名字（比如 sync_feishu_data.py）
         run: |
           python sync_feishu_data.py
 
