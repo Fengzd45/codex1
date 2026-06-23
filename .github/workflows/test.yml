@@ -1,7 +1,6 @@
 name: 🔍 单独调试【sync_feishu_data.py】引擎
 
 on:
-  # 允许您在 Actions 页面随时手动点击蓝色按钮触发测试
   workflow_dispatch:
 
 jobs:
@@ -12,7 +11,10 @@ jobs:
       - name: 1. 检出本地仓库最新 main 代码
         uses: actions/checkout@v4
         with:
-          ref: 'main' # 严格锁定读取您成功的 main 分支
+          # 🌟 加上这行核心钥匙，彻底解决 403 权限拒绝问题！
+          token: ${{ secrets.MY_SUPER_TOKEN }}
+          ref: 'main'
+          persist-credentials: true
 
       - name: 2. 部署Python运行环境
         uses: actions/setup-python@v5
@@ -25,7 +27,6 @@ jobs:
           pip install --no-cache-dir requests pypinyin
 
       - name: 4. 灌注保险柜密钥并【单试同步程序】
-        # 灌注您多维表格的核心钥匙，确保 Python 脚本有权访问飞书
         env:
           FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
           FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
@@ -35,10 +36,7 @@ jobs:
           FAMILY_NAME_TAG: ${{ secrets.FAMILY_NAME_TAG }}
         run: |
           echo "==== 🚀 启动单项测试：开始执行同步逻辑 ===="
-          
-          # 运行您的核心同步程序
           python sync_feishu_data.py
-          
           echo "==== 🏁 单项测试执行完毕 ===="
 
       - name: 5. 自动提交变动（如果有照片下载成功则入库）
