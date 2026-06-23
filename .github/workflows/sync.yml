@@ -2,60 +2,51 @@ name: 家族档案双向智能同步引擎
 
 on:
   schedule:
-    - cron: '0 16 * * *'  # 北京时间半夜12点自动运行
-  workflow_dispatch:      # 允许手动点击按钮测试运行
-  
-  # 🌟 新增：允许飞书通过 HTTP POST 请求即时唤醒此工作流
+    - cron: '0 16 * * *'
+  workflow_dispatch:
   repository_dispatch:
-    types: [feishu_sync]  # 这里的名字必须和飞书 HTTP 请求体里的 event_type 完全一致
+    types: [feishu_sync]
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     
-    # 🌟 新增：显式赋予工作流对仓库的写入权限，防止脚本修改文件后无权推送到仓库
     permissions:
       contents: write
       
     steps:
-      - name: 1. 检出家族GitHub仓库代码
-        uses: actions/checkout@v4  # 顺便帮你升级到更稳定的 v4 版本
+      - name: 1. Checkout repository
+        uses: actions/checkout@v4
 
-      - name: 2. 部署Python运行环境
-        uses: actions/setup-python@v5  # 顺便帮你升级到更稳定的 v5 版本
+      - name: 2. Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10'       # 修正了原文件中的拼写错误 python-python -> python-version
+          python-version: '3.10'
 
-      - name: 3. 安装网络及飞书底层依赖
+      - name: 3. Install dependencies
         run: |
           pip install requests
 
-      - name: 4. 🌟 从各家保险柜灌注密钥，并启动超级引擎
+      - name: 4. Run sync script
         env:
-          # secrets.XXX 会全自动读取【当前仓库】保险柜里存的那个值！
           FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
           FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
           FEISHU_APP_TOKEN: ${{ secrets.FEISHU_APP_TOKEN }}
           FEISHU_TABLE_ID: ${{ secrets.FEISHU_TABLE_ID }}
           FEISHU_PWD_TABLE_ID: ${{ secrets.FEISHU_PWD_TABLE_ID }}
-          FAMILY_NAME_TAG: ${{ secrets.FAMILY_NAME_TAG }} # 比如保险柜里存 "陈氏" 或 "李氏"
+          FAMILY_NAME_TAG: ${{ secrets.FAMILY_NAME_TAG }}
         run: |
-          # 依然运行你原有的 Python 程序。
-          # 当被飞书触发时，它会立刻执行一次完整的飞书 -> 仓库内容同步
           python sync_feishu_data.py
 
-      # 🌟 新增：如果你的 sync_feishu_data.py 只负责修改本地文件、没有写 git commit 代码，
-      # 那么可以用下面这个标准步骤，自动把 Python 修改后的最新 JSONL 数据提交并推送到 GitHub。
-      - name: 5. 自动提交并推送变动到仓库
+      - name: 5. Push changes to repository
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action Bot"
           
-          # 检查文件是否有变动，有变动才提交（假设数据存放在 data.jsonl 中，可根据实际文件名修改）
           if [ -n "$(git status --porcelain)" ]; then
             git add .
             git commit -m "飞书即时同步: 家族档案更新 [skip ci]"
             git push
           else
-            echo "没有检测到文件变动，跳过提交。"
+            echo "No changes detected, skipping commit."
           fi
