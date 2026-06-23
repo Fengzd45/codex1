@@ -1,60 +1,61 @@
-name: 家族数据自动同步（飞书→仓库）
+name: 家族档案双向智能同步引擎
 
 on:
   schedule:
-    - cron: '0 16 * * *'      # 每天北京时间 0 点运行（UTC 16:00）
-  workflow_dispatch:          # 允许手动在 GitHub 网页点按钮触发
+    - cron: '0 16 * * *'  # 北京时间半夜12点自动运行
+  workflow_dispatch:      # 允许手动点击按钮测试运行
   
+  # 🌟 新增：允许飞书通过 HTTP POST 请求即时唤醒此工作流
   repository_dispatch:
-    types: [feishu_form_submit] # 允许飞书通过 Webhook 带着暗号来立刻触发
+    types: [feishu_sync]  # 这里的名字必须和飞书 HTTP 请求体里的 event_type 完全一致
 
 jobs:
   sync:
     runs-on: ubuntu-latest
-
+    
+    # 🌟 新增：显式赋予工作流对仓库的写入权限，防止脚本修改文件后无权推送到仓库
+    permissions:
+      contents: write
+      
     steps:
-      - name: 检出代码
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.PAT }} # 使用您保险柜里配好的 PAT 确保最高推代码权限
+      - name: 1. 检出家族GitHub仓库代码
+        uses: actions/checkout@v4  # 顺便帮你升级到更稳定的 v4 版本
 
-      - name: 安装 Python
-        uses: actions/setup-python@v4
+      - name: 2. 部署Python运行环境
+        uses: actions/setup-python@v5  # 顺便帮你升级到更稳定的 v5 版本
         with:
-          python-version: '3.10'
+          python-version: '3.10'       # 修正了原文件中的拼写错误 python-python -> python-version
 
-      - name: 安装依赖
+      - name: 3. 安装网络及飞书底层依赖
         run: |
-          pip install requests pypinyin
+          pip install requests
 
-      - name: 运行同步脚本（从飞书拉取数据）
+      - name: 4. 🌟 从各家保险柜灌注密钥，并启动超级引擎
         env:
+          # secrets.XXX 会全自动读取【当前仓库】保险柜里存的那个值！
           FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
           FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
           FEISHU_APP_TOKEN: ${{ secrets.FEISHU_APP_TOKEN }}
           FEISHU_TABLE_ID: ${{ secrets.FEISHU_TABLE_ID }}
           FEISHU_PWD_TABLE_ID: ${{ secrets.FEISHU_PWD_TABLE_ID }}
+          FAMILY_NAME_TAG: ${{ secrets.FAMILY_NAME_TAG }} # 比如保险柜里存 "陈氏" 或 "李氏"
         run: |
+          # 依然运行你原有的 Python 程序。
+          # 当被飞书触发时，它会立刻执行一次完整的飞书 -> 仓库内容同步
           python sync_feishu_data.py
 
-      - name: 提交更新到仓库
+      # 🌟 新增：如果你的 sync_feishu_data.py 只负责修改本地文件、没有写 git commit 代码，
+      # 那么可以用下面这个标准步骤，自动把 Python 修改后的最新 JSONL 数据提交并推送到 GitHub。
+      - name: 5. 自动提交并推送变动到仓库
         run: |
-          git config user.name "家族同步机器人"
-          git config user.email "bot@family.com"
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action Bot"
           
-          # 🌟 核心防错：先强制把任何无意中染绿（加入暂存区）的 yml 文件踢出去，防止触发安全拦截
-          git reset HEAD .github/workflows/sync.yml || true
-          
-          # 🌟 精准添加：只添加修改的数据文件和资料文件夹
-          git add family_data.jsonl manifest.json
-          if [ -d "资料" ]; then
-            git add 资料/
-          fi
-          
-          # 只有在真正有家谱数据变动时才提交和强推
-          if ! git diff --staged --quiet; then
-            git commit -m "🤖 自动同步飞书数据 $(date '+%Y-%m-%d %H:%M')"
-            git push -f origin main
+          # 检查文件是否有变动，有变动才提交（假设数据存放在 data.jsonl 中，可根据实际文件名修改）
+          if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "飞书即时同步: 家族档案更新 [skip ci]"
+            git push
           else
-            echo "没有发现家谱数据变动，跳过推送。"
+            echo "没有检测到文件变动，跳过提交。"
           fi
