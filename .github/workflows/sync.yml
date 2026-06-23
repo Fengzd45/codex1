@@ -16,7 +16,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.MY_SUPER_TOKEN }}
-          # 🌟 关键修改 1：显式指定拉取主仓库的 main 分支，彻底解决本地找不到分支名的问题
           ref: 'main'
           persist-credentials: true
 
@@ -25,9 +24,11 @@ jobs:
         with:
           python-version: '3.10'
 
+      # 🌟 按照您的思路：先升级底层安装库，再清理缓存强行把模块安上去
       - name: 3. 安装网络及飞书底层依赖
         run: |
-          pip install requests pypinyin
+          python -m pip install --upgrade pip
+          pip install --no-cache-dir requests pypinyin
 
       - name: 4. 从各家保险柜灌注密钥，并启动超级引擎
         env:
@@ -51,7 +52,7 @@ jobs:
             git add .
             git commit -m "飞书即时同步: 家族档案更新 [skip ci]"
             
-            # 🌟 关键修改 2：强行推送到远程的 main 分支，用超级令牌打通最后一公里
+            # 强推到主分支 main
             git push "https://x-access-token:${SUPER_TOKEN}@github.com/${{ github.repository }}.git" HEAD:main
           else
             echo "没有检测到任何文件变动，跳过本次提交。"
