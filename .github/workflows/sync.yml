@@ -15,8 +15,9 @@ jobs:
       - name: 1. 检出家族GitHub仓库代码
         uses: actions/checkout@v4
         with:
-          # 🌟 这里改用你放入保险柜的超级令牌，彻底绕过 Fork 仓库的 Read-only 限制
           token: ${{ secrets.MY_SUPER_TOKEN }}
+          # 🌟 关键修改 1：显式指定拉取主仓库的 main 分支，彻底解决本地找不到分支名的问题
+          ref: 'main'
           persist-credentials: true
 
       - name: 2. 部署Python运行环境
@@ -41,7 +42,6 @@ jobs:
 
       - name: 5. 自动提交并推送变动到仓库
         env:
-          # 🌟 同样在这里引入这把超级钥匙
           SUPER_TOKEN: ${{ secrets.MY_SUPER_TOKEN }}
         run: |
           git config --local user.email "action@github.com"
@@ -51,7 +51,7 @@ jobs:
             git add .
             git commit -m "飞书即时同步: 家族档案更新 [skip ci]"
             
-            # 使用你的高权个人令牌强制推送，直接击穿 403 权限封锁
+            # 🌟 关键修改 2：强行推送到远程的 main 分支，用超级令牌打通最后一公里
             git push "https://x-access-token:${SUPER_TOKEN}@github.com/${{ github.repository }}.git" HEAD:main
           else
             echo "没有检测到任何文件变动，跳过本次提交。"
