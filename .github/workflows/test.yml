@@ -1,0 +1,57 @@
+name: 🔍 单独调试【sync_feishu_data.py】引擎
+
+on:
+  # 允许您在 Actions 页面随时手动点击蓝色按钮触发测试
+  workflow_dispatch:
+
+jobs:
+  test_run:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 1. 检出本地仓库最新 main 代码
+        uses: actions/checkout@v4
+        with:
+          ref: 'main' # 严格锁定读取您成功的 main 分支
+
+      - name: 2. 部署Python运行环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 3. 安装网络及拼音底层依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install --no-cache-dir requests pypinyin
+
+      - name: 4. 灌注保险柜密钥并【单试同步程序】
+        # 灌注您多维表格的核心钥匙，确保 Python 脚本有权访问飞书
+        env:
+          FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
+          FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
+          FEISHU_APP_TOKEN: ${{ secrets.FEISHU_APP_TOKEN }}
+          FEISHU_TABLE_ID: ${{ secrets.FEISHU_TABLE_ID }}
+          FEISHU_PWD_TABLE_ID: ${{ secrets.FEISHU_PWD_TABLE_ID }}
+          FAMILY_NAME_TAG: ${{ secrets.FAMILY_NAME_TAG }}
+        run: |
+          echo "==== 🚀 启动单项测试：开始执行同步逻辑 ===="
+          
+          # 运行您的核心同步程序
+          python sync_feishu_data.py
+          
+          echo "==== 🏁 单项测试执行完毕 ===="
+
+      - name: 5. 自动提交变动（如果有照片下载成功则入库）
+        env:
+          SUPER_TOKEN: ${{ secrets.MY_SUPER_TOKEN }}
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action Bot"
+          
+          if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "单项调试触发: 档案尝试更新"
+            git push "https://x-access-token:${SUPER_TOKEN}@github.com/${{ github.repository }}.git" HEAD:main
+          else
+            echo "报告：本次运行未发现任何新文件或新照片被下载。仓库无变动。"
+          fi
