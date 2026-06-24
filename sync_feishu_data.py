@@ -7,7 +7,7 @@ import random
 import re
 from pypinyin import pinyin, Style
 
-# ==================== 所有飞书参数从环境变量读取（均以 FEISHU_ 开头） ====================
+# ==================== 所有飞书参数从环境变量读取 ====================
 FEISHU_APP_ID = os.getenv("FEISHU_APP_ID")
 FEISHU_APP_SECRET = os.getenv("FEISHU_APP_SECRET")
 FEISHU_APP_TOKEN = os.getenv("FEISHU_APP_TOKEN")
@@ -53,10 +53,13 @@ def get_tenant_access_token():
         print(f"⚠️ 鉴权异常: {e}")
         return None
 
-# ==================== 下载文件（使用附件自带的 url） ====================
-def download_from_url(url, save_path):
+# ==================== 下载文件（携带 Token 确保下载成功） ====================
+def download_from_url(url, save_path, token=None):
+    headers = {}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     try:
-        res = requests.get(url, stream=True, timeout=30)
+        res = requests.get(url, headers=headers, stream=True, timeout=30)
         if res.status_code == 200:
             os.makedirs(os.path.dirname(save_path), exist_ok=True)
             with open(save_path, "wb") as f:
@@ -65,7 +68,7 @@ def download_from_url(url, save_path):
             print(f"   ➔ 💾 [下载成功] {save_path}")
             return True
         else:
-            print(f"   ➔ ❌ 下载失败，状态码 {res.status_code}")
+            print(f"   ➔ ❌ 下载失败，状态码 {res.status_code}，响应: {res.text[:200]}")
             return False
     except Exception as e:
         print(f"   ➔ ❌ 下载异常: {e}")
@@ -229,43 +232,78 @@ def run_local_sync_data():
             user_folder = os.path.join(ROOT_MEDIA_DIR, current_subject)
             os.makedirs(user_folder, exist_ok=True)
 
-            # 下载图片/视频
-            image_list = fields.get("从图库选入图片视频") or fields.get("从图库上传图片视频")
+            # ==================== 下载图片/视频（两列独立抓取，对齐本地 mmb.py 逻辑） ====================
+            image_field_key = "从图库选入图片视频"
+            image_list = fields.get(image_field_key)
             if image_list:
-                print(f"   🔍 发现 {len(image_list)} 个图片/视频文件")
-                for img in image_list:
-                    filename = img.get("name", "photo.jpg")
+                print(f"   🔍 发现 {len(image_list)} 个选入图片/视频文件")
+                for idx, img in enumerate(image_list):
+                    filename = img.get("name", f"photo_{idx}.jpg")
                     save_path = os.path.join(user_folder, filename)
                     download_url = img.get("url")
                     if download_url:
                         if not os.path.exists(save_path):
-                            download_from_url(download_url, save_path)
+                            download_from_url(download_url, save_path, token)
                         else:
                             print(f"   ⏭️ 文件已存在: {filename}")
                     else:
-                        print(f"   ⚠️ 附件无下载链接，跳过: {filename}")
-            else:
-                print(f"   ℹ️ 该记录无图片/视频")
+                        print(f"   ⚠️ 该附件无下载链接，跳过: {filename}")
+            
+            image_list_backup = fields.get("从图库上传图片视频")
+            if image_list_backup:
+                print(f"   🔍 发现 {len(image_list_backup)} 个上传图片/视频文件 (备用列)")
+                for idx, img in enumerate(image_list_backup):
+                    filename = img.get("name", f"photo_up_{idx}.jpg")
+                    save_path = os.path.join(user_folder, filename)
+                    download_url = img.get("url")
+                    if download_url:
+                        if not os.path.exists(save_path):
+                            download_from_url(download_url, save_path, token)
+                        else:
+                            print(f"   ⏭️ 文件已存在: {filename}")
+                    else:
+                        print(f"   ⚠️ 该附件无下载链接，跳过: {filename}")
 
-            # 下载音频
-            audio_list = fields.get("从录音选入音频") or fields.get("从录音上传音频")
+            if not image_list and not image_list_backup:
+                print(f"   ℹ️ 该记录无任何图片/视频")
+
+
+            # ==================== 下载音频（两列独立抓取，对齐本地 mmb.py 逻辑） ====================
+            audio_field_key = "从录音选入音频"
+            audio_list = fields.get(audio_field_key)
             if audio_list:
-                print(f"   🔍 发现 {len(audio_list)} 个音频文件")
-                for audio in audio_list:
-                    filename = audio.get("name", "audio.mp3")
+                print(f"   🔍 发现 {len(audio_list)} 个选入音频文件")
+                for idx, audio in enumerate(audio_list):
+                    filename = audio.get("name", f"audio_{idx}.mp3")
                     save_path = os.path.join(user_folder, filename)
                     download_url = audio.get("url")
                     if download_url:
                         if not os.path.exists(save_path):
-                            download_from_url(download_url, save_path)
+                            download_from_url(download_url, save_path, token)
                         else:
                             print(f"   ⏭️ 音频已存在: {filename}")
                     else:
-                        print(f"   ⚠️ 附件无下载链接，跳过: {filename}")
-            else:
-                print(f"   ℹ️ 该记录无音频")
+                        print(f"   ⚠️ 该附件无下载链接，跳过: {filename}")
+            
+            audio_list_backup = fields.get("从录音上传音频")
+            if audio_list_backup:
+                print(f"   🔍 发现 {len(audio_list_backup)} 个上传音频文件 (备用列)")
+                for idx, audio in enumerate(audio_list_backup):
+                    filename = audio.get("name", f"audio_up_{idx}.mp3")
+                    save_path = os.path.join(user_folder, filename)
+                    download_url = audio.get("url")
+                    if download_url:
+                        if not os.path.exists(save_path):
+                            download_from_url(download_url, save_path, token)
+                        else:
+                            print(f"   ⏭️ 音频已存在: {filename}")
+                    else:
+                        print(f"   ⚠️ 该附件无下载链接，跳过: {filename}")
 
-            # 处理文章
+            if not audio_list and not audio_list_backup:
+                print(f"   ℹ️ 该记录无任何音频")
+
+            # ==================== 处理文献文章 ====================
             article_content = str(fields.get("输入粘贴文章", "") or fields.get("输入/粘贴文章", "")).strip()
             if article_content and article_content.upper() != "NONE":
                 articles = [a.strip() for a in article_content.split("===") if a.strip()]
@@ -314,7 +352,7 @@ def run_local_sync_data():
         # 保存账本
         save_family_data(family_tree)
 
-        # ==================== 生成 manifest.json ====================
+        # ==================== 生成前台可视化 manifest.json 清单 ====================
         def generate_manifest(media_root):
             manifest = {}
             if not os.path.exists(media_root):
