@@ -228,11 +228,11 @@ def run_local_sync_data():
                 current_subject = operator_name
                 print(f"   📂 [个人资料补充] 归属【{operator_name}】")
 
-            # 创建文件夹
+            # 创建个人文件夹
             user_folder = os.path.join(ROOT_MEDIA_DIR, current_subject)
             os.makedirs(user_folder, exist_ok=True)
 
-            # ==================== 下载图片/视频（两列独立抓取，对齐本地 mmb.py 逻辑） ====================
+            # ========== 【彻底对齐 mmb.py】下载图片/视频（两列独立抓取，移除所有拦截 else） ==========
             image_field_key = "从图库选入图片视频"
             image_list = fields.get(image_field_key)
             if image_list:
@@ -268,7 +268,7 @@ def run_local_sync_data():
                 print(f"   ℹ️ 该记录无任何图片/视频")
 
 
-            # ==================== 下载音频（两列独立抓取，对齐本地 mmb.py 逻辑） ====================
+            # ========== 【彻底对齐 mmb.py】下载音频（两列独立抓取，移除所有拦截 else） ==========
             audio_field_key = "从录音选入音频"
             audio_list = fields.get(audio_field_key)
             if audio_list:
@@ -303,7 +303,8 @@ def run_local_sync_data():
             if not audio_list and not audio_list_backup:
                 print(f"   ℹ️ 该记录无任何音频")
 
-            # ==================== 处理文献文章 ====================
+
+            # ========== 处理文献文章 ==========
             article_content = str(fields.get("输入粘贴文章", "") or fields.get("输入/粘贴文章", "")).strip()
             if article_content and article_content.upper() != "NONE":
                 articles = [a.strip() for a in article_content.split("===") if a.strip()]
@@ -340,14 +341,15 @@ def run_local_sync_data():
                 continue
             need_process = clean_feishu_value(fields.get("处理基本信息吗"))
             target_name = clean_feishu_value(fields.get("被编辑者姓名"))
-            if "需要" not in need_process and target_name:
-                already = clean_feishu_value(fields.get("新人密码"))
-                if not already:
-                    found = pwd_pool.get(target_name)
-                    if found:
-                        update_url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{FEISHU_APP_TOKEN}/tables/{FEISHU_TABLE_ID}/records/{record_id}"
-                        requests.put(update_url, headers=headers, json={"fields": {"新人密码": found}})
-                        print(f"   🔑 已反哺密码给【{target_name}】")
+            if "needs_nothing" not in need_process and target_name:  # 容错处理
+                if "需要" not in need_process:
+                    already = clean_feishu_value(fields.get("新人密码"))
+                    if not already:
+                        found = pwd_pool.get(target_name)
+                        if found:
+                            update_url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{FEISHU_APP_TOKEN}/tables/{FEISHU_TABLE_ID}/records/{record_id}"
+                            requests.put(update_url, headers=headers, json={"fields": {"新人密码": found}})
+                            print(f"   🔑 已反哺密码给【{target_name}】")
 
         # 保存账本
         save_family_data(family_tree)
