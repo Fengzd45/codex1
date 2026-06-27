@@ -46,10 +46,19 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action Bot"
           
+          # 强行刷新 Git 索引，确保精准捕获文件的细微文本变动
+          git diff > /dev/null 2>&1
+          
           if [ -n "$(git status --porcelain)" ]; then
+            echo "==== 💾 检测到数据或照片有变动，开始准备提交 ===="
             git add .
-            git commit -m "单项调试触发: 档案尝试更新"
+            git commit -m "单项调试触发: 档案尝试更新 [skip ci]"
+            
+            # 🔥 核心锁钥：先拉取远程最新代码（融合actions-user产生的提交），防止冲突
+            git pull --rebase origin main
+            
             git push "https://x-access-token:${SUPER_TOKEN}@github.com/${{ github.repository }}.git" HEAD:main
+            echo "==== 🎉 成功！新数据已顺利写入仓库 ===="
           else
-            echo "报告：本次运行未发现任何新文件或新照片被下载。仓库无变动。"
+            echo "==== ℹ️ 报告：本次运行未发现任何新文件或新照片被下载。仓库无变动。 ===="
           fi
