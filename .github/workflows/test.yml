@@ -11,7 +11,6 @@ jobs:
       - name: 1. 检出本地仓库最新 main 代码
         uses: actions/checkout@v4
         with:
-          # 🌟 加上这行核心钥匙，彻底解决 403 权限拒绝问题！
           token: ${{ secrets.MY_SUPER_TOKEN }}
           ref: 'main'
           persist-credentials: true
@@ -43,8 +42,9 @@ jobs:
         env:
           SUPER_TOKEN: ${{ secrets.MY_SUPER_TOKEN }}
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action Bot"
+          # 🔥 彻底放弃默认机器人，直接锁定为您个人的 GitHub 账号与专属虚拟邮箱
+          git config --local user.name "Fengzd45"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           
           # 强行刷新 Git 索引，确保精准捕获文件的细微文本变动
           git diff > /dev/null 2>&1
@@ -54,11 +54,11 @@ jobs:
             git add .
             git commit -m "单项调试触发: 档案尝试更新 [skip ci]"
             
-            # 🔥 核心锁钥：先拉取远程最新代码（融合actions-user产生的提交），防止冲突
+            # 🔥 核心锁钥：先拉取远程最新状态进行变动融合，防止指针打架
             git pull --rebase origin main
             
             git push "https://x-access-token:${SUPER_TOKEN}@github.com/${{ github.repository }}.git" HEAD:main
-            echo "==== 🎉 成功！新数据已顺利写入仓库 ===="
+            echo "==== 🎉 成功！新数据已顺利以 Fengzd45 身份写入仓库 ===="
           else
             echo "==== ℹ️ 报告：本次运行未发现任何新文件或新照片被下载。仓库无变动。 ===="
           fi
