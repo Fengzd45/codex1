@@ -48,12 +48,20 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action Bot"
           
+          # 强行刷新 Git 索引，确保精准捕获文件的细微文本变动
+          git diff > /dev/null 2>&1
+          
           if [ -n "$(git status --porcelain)" ]; then
+            echo "==== 💾 检测到数据有变动，开始准备提交 ===="
             git add .
             git commit -m "飞书即时同步: 家族档案更新 [skip ci]"
             
+            # 🔥 核心锁钥：先拉取远程最新代码（融合actions-user产生的提交），防止冲突
+            git pull --rebase origin main
+            
             # 强推到主分支 main
             git push "https://x-access-token:${SUPER_TOKEN}@github.com/${{ github.repository }}.git" HEAD:main
+            echo "==== 🎉 成功！新数据已顺利写入仓库 ===="
           else
-            echo "没有检测到任何文件变动，跳过本次提交。"
+            echo "==== ℹ️ 没有检测到任何文件变动，跳过本次提交。 ===="
           fi
