@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>家族关系 · 上三辈下三辈 + 点父母出兄弟姐妹</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f0e8; margin: 0; padding: 16px; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { background: #8b5a2b; color: white; padding: 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 1.6rem; }
+        .header p { margin: 8px 0 0; opacity: 0.9; font-size: 0.85rem; }
+        .content { padding: 20px; }
+        .folder-select-area { background: #f0e8d8; padding: 12px 16px; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .folder-status { font-size: 0.85rem; font-weight: bold; }
+        .folder-btn { background: #8b5a2b; color: white; border: none; padding: 8px 20px; border-radius: 30px; cursor: pointer; font-size: 0.85rem; }
+        .folder-btn:disabled { opacity: 0.6; cursor: default; background: #aaa; }
+        .input-area { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .input-area input { flex: 1; padding: 12px 16px; font-size: 1rem; border: 1px solid #ddd; border-radius: 30px; outline: none; }
+        .input-area button { background: #8b5a2b; color: white; border: none; padding: 12px 24px; border-radius: 30px; cursor: pointer; font-weight: bold; }
+        .input-area button:disabled { opacity: 0.5; cursor: not-allowed; background: #aaa; }
+        .stat-btn { background: #2c5a2c; } 
+        .output { background: #faf8f0; border-radius: 16px; padding: 16px; max-height: 600px; overflow-y: auto; font-size: 0.85rem; line-height: 1.5; border: 1px solid #e0d6c0; }
+        .output pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-family: monospace; font-size: 0.8rem; }
+        .clickable-name { cursor: pointer; color: #8b5a2b; text-decoration: underline dotted; transition: all 0.2s; }
+        .clickable-name:hover { color: #c07830; background-color: #f0e8d8; border-radius: 4px; }
+        .footer { text-align: center; padding: 16px; font-size: 0.7rem; color: #aaa; border-top: 1px solid #eee; }
+        .to-top { position: fixed; bottom: 20px; right: 20px; background: #8b5a2b; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0.7; z-index: 100; }
+        .to-top:hover { opacity: 1; }
+        audio, video { max-width: 100%; }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0.2s, opacity 0.2s;
+        }
+        .modal-overlay.active { visibility: visible; opacity: 1; }
+
+        #statModal { z-index: 1000; }
+        #mediaModal { z-index: 1001; }
+        #treeModal { z-index: 999; }
+
+        .modal-container {
+            background: #fffef7;
+            border-radius: 32px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+        .modal-header {
+            background: #8b5a2b;
+            color: white;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+        .modal-header h3 { margin: 0; font-size: 1.2rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 40px;
+        }
+        .modal-close:hover { background: rgba(255, 255, 255, 0.2); }
+        .modal-body { flex: 1; overflow-y: auto; padding: 16px 20px; background: #fefcf5; }
+
+        .file-list-modal {
+            background: #faf8f0;
+            border-radius: 20px;
+            padding: 8px 0;
+            margin-bottom: 20px;
+            max-height: 260px;
+            overflow-y: auto;
+            border: 1px solid #e0d6c0;
+        }
+        .file-item-modal {
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            border-bottom: 1px solid #e8e0d0;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .file-item-modal:hover { background: #f0e8d8; }
+        .file-icon-modal { font-size: 1.3rem; margin-right: 14px; width: 32px; text-align: center; }
+        .file-name-modal { flex: 1; word-break: break-all; font-size: 0.9rem; }
+        .media-preview-modal {
+            background: white;
+            border-radius: 20px;
+            padding: 16px;
+            margin-top: 8px;
+            border: 1px solid #e0d6c0;
+            max-height: 320px;
+            overflow-y: auto;
+        }
+        .preview-image { max-width: 100%; border-radius: 12px; display: block; margin: 0 auto; }
+        .preview-text { white-space: pre-wrap; font-family: monospace; background: #f8f9fa; padding: 12px; border-radius: 12px; font-size: 0.8rem; }
+        .empty-media-modal { text-align: center; padding: 32px 20px; color: #a0a090; }
+        .download-link-modal {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 6px 14px;
+            background: #8b5a2b;
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-size: 0.75rem;
+        }
+        details.manual { background: #fff3e0; padding: 8px 12px; border-radius: 12px; margin-bottom: 12px; font-size: 0.75rem; }
+        details.manual summary { cursor: pointer; font-weight: bold; color: #8b5a2b; }
+
+        #treeModal .modal-container { max-width: 95vw; max-height: 90vh; width: 95vw; }
+        #treeModalBody { padding: 0; background: #fff; height: 75vh; min-height: 450px; display: flex; flex-direction: column; }
+        #treeCanvasContainer { flex: 1; overflow: auto; background: #fff; position: relative; -webkit-overflow-scrolling: touch; }
+        #treeCanvas { display: block; background: #fff; cursor: pointer; touch-action: none; position: absolute; top: 0; left: 0; }
+
+        #statModal .modal-container { max-width: 800px; }
+        .stat-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .stat-table th { background: #8b5a2b; color: white; padding: 10px 8px; text-align: left; }
+        .stat-table td { padding: 8px 8px; border-bottom: 1px solid #e0d6c0; }
+        .stat-table tr:hover { background: #f0e8d8; }
+        .stat-table .num { text-align: right; padding-right: 16px; }
+        .stat-name { font-weight: 500; color: #4a2a0a; cursor: pointer; }
+        .stat-name:hover { color: #c07830; background-color: #f0e8d8; border-radius: 4px; }
+        .stat-empty { text-align: center; color: #999; padding: 30px 0; }
+        #statModal .modal-body { padding: 12px 20px; }
+        .stat-summary { background: #f0e8d8; border-radius: 20px; padding: 8px 16px; margin-bottom: 16px; display: inline-block; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>📜 家族关系 · 上三辈下三辈 + 点父母出兄弟姐妹</h1>
+        <p>单击父/母显示兄弟姐妹，单击兄弟姐妹显示堂表兄妹 | 拖拽缩放 | 查询关系 | 多媒体资料</p>
+    </div>
+    <div class="content">
+        <div class="folder-select-area">
+            <span class="folder-status" id="folderStatus">📁 正在检测运行环境...</span>
+            <button class="folder-btn" id="selectFolderBtn">📂 加载资料库</button>
+        </div>
+        <details class="manual">
+            <summary>📖 使用说明</summary>
+            <div>• 初始树包含本人、上三辈祖先、下三辈后代、配偶的父母及祖父母。<br>• 单击父亲或母亲节点，动态显示其所有其他子女（兄弟姐妹）。<br>• 单击兄弟姐妹节点，动态显示其子女（堂表兄妹）。再次单击收起。<br>• 无子女节点打开多媒体资料弹窗。<br>• 支持鼠标/手指拖拽、滚轮/双指缩放。<br>• 「🔍 查询关系」可查看完整亲属关系树。</div>
+        </details>
+        <div class="input-area">
+            <input type="text" id="startName" placeholder="请输入姓名" value="冯宗德" disabled>
+            <button id="searchBtn" disabled>🔍 查询关系</button>
+            <button id="treeBtn" disabled>🌳 图形家族树（可交互）</button>
+            <button id="statBtn" class="stat-btn" disabled>📊 资料统计</button>
+        </div>
+        <div class="output" id="output"><pre>请先点击「加载资料库」授权家谱数据...</pre></div>
+    </div>
+    <div class="footer">家族关系 | 点击姓名弹窗查看资料 | 线上模式自动加载 GitHub 资料</div>
+</div>
+<div class="to-top" id="toTopBtn" style="display: none;">↑</div>
+
+<div id="mediaModal" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 id="modalTitle">📁 多媒体资料</h3>
+            <button class="modal-close" id="closeModalBtn">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody"><div class="empty-media-modal">加载中...</div></div>
+    </div>
+</div>
+
+<div id="treeModal" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 id="treeModalTitle">🌳 家族树</h3>
+            <button class="modal-close" id="closeTreeModalBtn">&times;</button>
+        </div>
+        <div class="modal-body" id="treeModalBody">
+            <div id="treeCanvasContainer">
+                <canvas id="treeCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="statModal" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3>📊 资料统计 · 按资料数排序</h3>
+            <button class="modal-close" id="closeStatModalBtn">&times;</button>
+        </div>
+        <div class="modal-body" id="statModalBody">
+            <div class="stat-empty">正在统计...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ===================== 全局变量 =====================
+let peopleData = null;
+let dataLoaded = false;
+let rootHandle = null;
+let folderHandle = null;
+let manifestCache = null;
+const isOnline = window.location.protocol === 'https:';
+const GITHUB_BASE = 'https://fengzd45.github.io/codex1/%E8%B5%84%E6%96%99/';
+
+// ===================== Person类 =====================
+class Person {
+    constructor(data) {
+        this.name = data.n;
+        this.sex = data.s;
+        this.father = data.f || "";
+        this.mother = data.m || "";
+        this.spouse = data.sp || [];
+        this.info = data.info || "";
+        this.birthYear = this._extractYear(this.info);
+        this.parents = [];
+        this.children = [];
+        this.fatherObj = null;
+        this.motherObj = null;
+    }
+    _extractYear(info) {
+        if (!info) return null;
+        const match = info.match(/(1[0-9]{3}|20[0-9]{2})/);
+        return match ? parseInt(match[0]) : null;
+    }
+}
+function buildRelations(people) {
+    for (const p of Object.values(people)) {
+        if (p.father && people[p.father]) {
+            p.fatherObj = people[p.father];
+            p.parents.push(p.fatherObj);
+            p.fatherObj.children.push(p);
+        }
+        if (p.mother && people[p.mother]) {
+            p.motherObj = people[p.mother];
+            p.parents.push(p.motherObj);
+            p.motherObj.children.push(p);
+        }
+    }
+    for (const p of Object.values(people)) {
+        p.children.sort((a,b) => (a.birthYear ?? 9999) - (b.birthYear ?? 9999));
+    }
+    return people;
+}
+function parseJsonl(text) {
+    const lines = text.split(/\r?\n/);
+    const people = {};
+    for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+            const obj = JSON.parse(line);
+            const p = new Person(obj);
+            people[p.name] = p;
+        } catch(e) { console.warn("解析失败:", line, e); }
+    }
+    return buildRelations(people);
+}
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+}
+
+// ===================== 关系查询 =====================
+function bfsRelationships(startName, people) {
+    const start = people[startName];
+    if (!start) return {};
+    const visited = {};
+    const queue = [{ person: start, genGap: 0, pathPersons: [], pathOps: [] }];
+    while (queue.length) {
+        const { person: cur, genGap, pathPersons, pathOps } = queue.shift();
+        if (visited[cur.name]) continue;
+        visited[cur.name] = { gap: genGap, pathPersons: [...pathPersons], pathOps: [...pathOps], person: cur };
+        if (cur.fatherObj) queue.push({ person: cur.fatherObj, genGap: genGap+1, pathPersons: [...pathPersons, cur.fatherObj], pathOps: [...pathOps, 'f'] });
+        if (cur.motherObj) queue.push({ person: cur.motherObj, genGap: genGap+1, pathPersons: [...pathPersons, cur.motherObj], pathOps: [...pathOps, 'm'] });
+        for (const child of cur.children) queue.push({ person: child, genGap: genGap-1, pathPersons: [...pathPersons, child], pathOps: [...pathOps, 'ch'] });
+        for (const spName of cur.spouse) {
+            const spouse = people[spName];
+            if (spouse) queue.push({ person: spouse, genGap: genGap, pathPersons: [...pathPersons, spouse], pathOps: [...pathOps, 'sp'] });
+        }
+    }
+    return visited;
+}
+function getSimpleRelationship(start, target, pathPersons, ops) {
+    const upSteps = ops.filter(op => op === 'f' || op === 'm').length;
+    const downSteps = ops.filter(op => op === 'ch').length;
+    if (ops.length === 1 && ops[0] === 'sp') return "配偶";
+    if (downSteps === 0 && upSteps === 1) return target.sex === '男' ? "父亲" : "母亲";
+    if (downSteps === 0 && upSteps === 2) return target.sex === '男' ? (ops.every(o=>o==='f')?"祖父":"外祖父") : (ops.every(o=>o==='f')?"祖母":"外祖母");
+    if (downSteps === 0 && upSteps === 3) return target.sex === '男' ? (ops.every(o=>o==='f')?"曾祖父":"外曾祖父") : (ops.every(o=>o==='f')?"曾祖母":"外曾祖母");
+    if (upSteps === 0 && downSteps === 1) return target.sex === '男' ? "儿子" : "女儿";
+    if (upSteps === 0 && downSteps === 2) return target.sex === '男' ? "孙子" : "孙女";
+    if (upSteps === 0 && downSteps === 3) return target.sex === '男' ? "曾孙" : "曾孙女";
+    if (upSteps === 1 && downSteps === 1) {
+        const sib = pathPersons[pathPersons.length-2];
+        if (sib && sib.sex === '男') return target.sex === '男' ? "侄子" : "侄女";
+        if (sib && sib.sex === '女') return target.sex === '男' ? "外甥" : "外甥女";
+        return target.sex === '男' ? "侄子" : "侄女";
+    }
+    if (upSteps === 2 && downSteps === 1) {
+        if (ops[0]==='f' && ops[1]==='f') return target.sex === '男' ? "伯叔" : "姑母";
+        if (ops[0]==='m' || ops[1]==='m') return target.sex === '男' ? "舅父" : "姨母";
+        return target.sex === '男' ? "伯叔" : "姑母";
+    }
+    if (upSteps === downSteps && upSteps === 1) {
+        const diff = (start.birthYear||0) - (target.birthYear||0);
+        if (target.sex === '男') return diff > 0 ? "兄" : (diff < 0 ? "弟" : "兄弟");
+        else return diff > 0 ? "姐" : (diff < 0 ? "妹" : "姐妹");
+    }
+    if (ops.includes('sp')) return "姻亲";
+    return "亲属";
+}
+function printRelationshipsWithClick(startName, relations, people) {
+    const byGap = new Map();
+    for (const [name, info] of Object.entries(relations)) {
+        if (name === startName) continue;
+        const gap = info.gap;
+        if (!byGap.has(gap)) byGap.set(gap, []);
+        byGap.get(gap).push({ name, pathPersons: info.pathPersons, pathOps: info.pathOps, person: info.person });
+    }
+    const sortedGaps = Array.from(byGap.keys()).sort((a,b) => b - a);
+    const lines = [];
+    const makeClickable = (name) => `<span class="clickable-name" data-name="${escapeHtml(name)}">${escapeHtml(name)}</span>`;
+    for (const gap of sortedGaps) {
+        const items = byGap.get(gap);
+        if (gap > 0) lines.push(`\n上${gap}辈 ————————————————————————————`);
+        else if (gap === 0) lines.push(`\n同辈 ————————————————————————————`);
+        else lines.push(`\n下${-gap}辈 ————————————————————————————`);
+        for (const item of items) {
+            const obj = item.person;
+            const rel = getSimpleRelationship(people[startName], obj, item.pathPersons, item.pathOps);
+            let line = `  ${rel} ${makeClickable(obj.name)}`;
+            if (obj.spouse && obj.spouse.length) {
+                const spouseObjs = obj.spouse.map(sn => people[sn]).filter(s => s);
+                if (spouseObjs.length) line += ` 配 ${spouseObjs.map(sp => makeClickable(sp.name)).join('、')}`;
+            }
+            lines.push(line);
+        }
+    }
+    return lines.join('\n');
+}
+
+// ===================== 多媒体 =====================
+async function loadManifest() {
+    if (manifestCache) return manifestCache;
+    try {
+        const resp = await fetch('https://fengzd45.github.io/codex1/manifest.json');
+        if (resp.ok) {
+            manifestCache = await resp.json();
+            return manifestCache;
+        }
+    } catch(e) {}
+    return null;
+}
+async function listOnlineFiles(personName) {
+    const manifest = await loadManifest();
+    if (manifest && manifest[personName]) {
+        return manifest[personName].map(fname => ({ name: fname, url: `${GITHUB_BASE}${encodeURIComponent(personName)}/${encodeURIComponent(fname)}` }));
+    }
+    return [];
+}
+async function previewOnlineFile(url, fileName) {
+    const ext = fileName.split('.').pop().toLowerCase();
+    if (['jpg','jpeg','png','gif','webp'].includes(ext)) {
+        return `<div><img src="${url}" style="max-height:280px;"><br><a href="${url}" download>下载</a></div>`;
+    } else if (['mp4','webm'].includes(ext)) {
+        return `<video controls src="${url}"></video><br><a href="${url}" download>下载</a>`;
+    } else if (['mp3','wav'].includes(ext)) {
+        return `<audio controls src="${url}"></audio><br><a href="${url}" download>下载</a>`;
+    } else if (ext === 'txt') {
+        try {
+            const resp = await fetch(url);
+            let text = await resp.text();
+            let linkified = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
+            return `<div class="preview-text">${linkified}</div><br><a href="${url}" download>下载文件</a>`;
+        } catch(e) {
+            return `<a href="${url}" download>下载 ${fileName}</a>`;
+        }
+    } else {
+        return `<a href="${url}" download>下载 ${fileName}</a>`;
+    }
+}
+async function previewLocalFile(file, fileName) {
+    const url = URL.createObjectURL(file);
+    const ext = fileName.split('.').pop().toLowerCase();
+    let html = '';
+    if (['jpg','jpeg','png','gif','webp'].includes(ext)) {
+        html = `<div><img src="${url}" style="max-height:280px;"><br><a href="${url}" download>下载</a></div>`;
+    } else if (['mp4','webm'].includes(ext)) {
+        html = `<video controls src="${url}"></video><br><a href="${url}" download>下载</a>`;
+    } else if (['mp3','wav'].includes(ext)) {
+        html = `<audio controls src="${url}"></audio><br><a href="${url}" download>下载</a>`;
+    } else if (ext === 'txt') {
+        try {
+            let text = await file.text();
+            let linkified = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
+            html = `<div class="preview-text">${linkified}</div><br><a href="${url}" download>下载文件</a>`;
+        } catch(e) {
+            html = `<a href="${url}" download>下载 ${fileName}</a>`;
+        }
+    } else {
+        html = `<a href="${url}" download>下载 ${fileName}</a>`;
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    return html;
+}
+
+const folderStatusSpan = document.getElementById('folderStatus');
+const outputPre = document.getElementById('output');
+const modalMedia = document.getElementById('mediaModal');
+const modalTitle = document.getElementById('modalTitle');
+const modalBody = document.getElementById('modalBody');
+const closeModalBtn = document.getElementById('closeModalBtn');
+const selectFolderBtn = document.getElementById('selectFolderBtn');
+const statModal = document.getElementById('statModal');
+const statBody = document.getElementById('statModalBody');
+
+// ===================== 授权 =====================
+selectFolderBtn.onclick = async () => {
+    if (isOnline) {
+        folderStatusSpan.innerHTML = `🌐 线上模式：资料自动从 GitHub 加载，无需授权。`;
+        folderStatusSpan.style.color = '#2c5a2c';
+        return;
+    }
+    try {
+        folderStatusSpan.innerHTML = '📂 请在弹窗中选择包含 family_data.jsonl 和「资料」文件夹的目录';
+        rootHandle = await window.showDirectoryPicker();
+        let foundJsonl = false;
+        let foundData = false;
+        let jsonlContent = '';
+
+        try {
+            const fileHandle = await rootHandle.getFileHandle('family_data.jsonl');
+            const file = await fileHandle.getFile();
+            jsonlContent = await file.text();
+            const parsed = parseJsonl(jsonlContent);
+            if (Object.keys(parsed).length > 0) {
+                peopleData = parsed;
+                dataLoaded = true;
+                foundJsonl = true;
+            }
+        } catch (e) {
+            console.warn('读取 family_data.jsonl 失败:', e);
+        }
+
+        try {
+            const fileHandle = await rootHandle.getFileHandle('manifest.json');
+            const file = await fileHandle.getFile();
+            const text = await file.text();
+            manifestCache = JSON.parse(text);
+            console.log('✅ 找到 manifest.json');
+        } catch (e) {
+            console.log('📭 根目录下没有 manifest.json');
+        }
+
+        let foundFolder = null;
+        for await (const entry of rootHandle.values()) {
+            if (entry.kind === 'directory' && entry.name === '资料') {
+                foundFolder = entry;
+                break;
+            }
+        }
+        if (foundFolder) {
+            folderHandle = foundFolder;
+            foundData = true;
+        }
+
+        if (foundJsonl && foundData) {
+            folderStatusSpan.innerHTML = `✅ 成功加载 family_data.jsonl（${Object.keys(peopleData).length} 人）并授权「资料」文件夹。`;
+            folderStatusSpan.style.color = '#2c5a2c';
+            enableUI();
+            outputPre.innerHTML = `<pre>✅ 家谱数据已加载！共 ${Object.keys(peopleData).length} 位人物。<br>已授权「资料」文件夹，点击姓名可查看多媒体资料。</pre>`;
+            if (peopleData['冯宗德']) document.getElementById('startName').value = '冯宗德';
+            else {
+                const first = Object.keys(peopleData)[0] || '';
+                document.getElementById('startName').value = first;
+            }
+        } else if (foundJsonl && !foundData) {
+            folderStatusSpan.innerHTML = `✅ 加载 family_data.jsonl 成功（${Object.keys(peopleData).length} 人），但未找到「资料」文件夹。`;
+            folderStatusSpan.style.color = '#c00';
+            enableUI();
+            outputPre.innerHTML = `<pre>✅ 家谱数据已加载！共 ${Object.keys(peopleData).length} 位人物。<br>⚠️ 未找到「资料」文件夹。</pre>`;
+        } else {
+            folderStatusSpan.innerHTML = `❌ 未找到 family_data.jsonl 或「资料」文件夹。`;
+            folderStatusSpan.style.color = '#c00';
+        }
+    } catch (err) {
+        if (err.name !== 'AbortError') console.error(err);
+        folderStatusSpan.innerHTML = '⚠️ 未选择文件夹或授权失败';
+        folderStatusSpan.style.color = '#c00';
+    }
+};
+
+// ===================== 显示多媒体（懒加载优化版） =====================
+async function showPersonMediaInModal(personName) {
+    modalTitle.innerHTML = `📁 ${escapeHtml(personName)} 的资料`;
+    modalBody.innerHTML = `<div class="empty-media-modal">⏳ 正在加载 ${escapeHtml(personName)} 的资料...</div>`;
+    modalMedia.classList.add('active');
+
+    if (isOnline) {
+        const files = await listOnlineFiles(personName);
+        if (files.length === 0) {
+            modalBody.innerHTML = `<div class="empty-media-modal">📭 该人物暂无线上资料文件。</div>`;
+            return;
+        }
+        let listHtml = `<div class="file-list-modal">`;
+        for (const f of files) {
+            listHtml += `<div class="file-item-modal" data-url="${escapeHtml(f.url)}" data-name="${escapeHtml(f.name)}"><span class="file-icon-modal">📄</span><span class="file-name-modal">${escapeHtml(f.name)}</span></div>`;
+        }
+        listHtml += `</div><div id="onlinePreviewArea" class="media-preview-modal"><div class="empty-media-modal">点击上方文件预览</div></div>`;
+        modalBody.innerHTML = listHtml;
+        const previewDiv = document.getElementById('onlinePreviewArea');
+        document.querySelectorAll('.file-item-modal').forEach(el => {
+            const url = el.getAttribute('data-url');
+            const name = el.getAttribute('data-name');
+            el.onclick = async () => {
+                if (previewDiv) previewDiv.innerHTML = await previewOnlineFile(url, name);
+            };
+        });
+        if (files[0] && previewDiv) previewDiv.innerHTML = await previewOnlineFile(files[0].url, files[0].name);
+        return;
+    }
+
+    if (!folderHandle && !rootHandle) {
+        modalBody.innerHTML = `<div class="empty-media-modal">⚠️ 请先点击「加载资料库」按钮，授权「资料」文件夹</div>`;
+        return;
+    }
+
+    let targetDir = null;
+    if (folderHandle) {
+        try {
+            targetDir = await folderHandle.getDirectoryHandle(personName);
+        } catch (e) {
+            if (rootHandle) {
+                try {
+                    const dataDir = await rootHandle.getDirectoryHandle('资料');
+                    targetDir = await dataDir.getDirectoryHandle(personName);
+                } catch (e2) {}
+            }
+        }
+    } else if (rootHandle) {
+        try {
+            const dataDir = await rootHandle.getDirectoryHandle('资料');
+            targetDir = await dataDir.getDirectoryHandle(personName);
+        } catch (e) {}
+    }
+
+    if (!targetDir) {
+        modalBody.innerHTML = `<div class="empty-media-modal">❌ 找不到“${escapeHtml(personName)}”的资料文件夹。</div>`;
+        return;
+    }
+
+    // 关键优化1：从 manifest 获取文件名（不读取文件内容）
+    let fileNames = [];
+    if (manifestCache && manifestCache[personName]) {
+        fileNames = manifestCache[personName];
+    } else {
+        const manifest = await loadLocalManifest();
+        if (manifest && manifest[personName]) {
+            fileNames = manifest[personName];
+            manifestCache = manifest;
+        }
+    }
+
+    if (fileNames.length === 0) {
+        // 降级：遍历获取文件名（不读取内容）
+        for await (const entry of targetDir.values()) {
+            if (entry.kind === 'file') {
+                fileNames.push(entry.name);
+            }
+        }
+    }
+
+    if (fileNames.length === 0) {
+        modalBody.innerHTML = `<div class="empty-media-modal">📭 该人物暂无本地资料文件。</div>`;
+        return;
+    }
+
+    // 关键优化2：只显示文件名列表，不读取文件内容
+    fileNames.sort((a,b) => a.localeCompare(b));
+    let listHtml = `<div class="file-list-modal">`;
+    for (const fname of fileNames) {
+        const ext = fname.split('.').pop().toLowerCase();
+        const icon = ['jpg','jpeg','png','gif','webp'].includes(ext) ? '🖼️' :
+                     ['mp4','webm','avi','mov'].includes(ext) ? '🎬' :
+                     ['mp3','wav','flac'].includes(ext) ? '🎵' : '📄';
+        listHtml += `<div class="file-item-modal" data-filename="${escapeHtml(fname)}"><span class="file-icon-modal">${icon}</span><span class="file-name-modal">${escapeHtml(fname)}</span></div>`;
+    }
+    listHtml += `</div><div id="localPreviewArea" class="media-preview-modal"><div class="empty-media-modal">点击上方文件预览</div></div>`;
+    modalBody.innerHTML = listHtml;
+
+    const previewDiv = document.getElementById('localPreviewArea');
+    document.querySelectorAll('.file-item-modal').forEach(el => {
+        const fname = el.getAttribute('data-filename');
+        el.onclick = async () => {
+            if (previewDiv) {
+                previewDiv.innerHTML = '<div class="empty-media-modal">⏳ 加载中...</div>';
+                try {
+                    const fileHandle = await targetDir.getFileHandle(fname);
+                    const file = await fileHandle.getFile();
+                    previewDiv.innerHTML = await previewLocalFile(file, fname);
+                } catch (e) {
+                    previewDiv.innerHTML = `<div class="empty-media-modal">❌ 读取失败: ${e.message}</div>`;
+                }
+            }
+        };
+    });
+
+    // 自动预览第一个文件
+    if (fileNames[0] && previewDiv) {
+        try {
+            const fileHandle = await targetDir.getFileHandle(fileNames[0]);
+            const file = await fileHandle.getFile();
+            previewDiv.innerHTML = await previewLocalFile(file, fileNames[0]);
+        } catch (e) {
+            previewDiv.innerHTML = `<div class="empty-media-modal">点击文件预览</div>`;
+        }
+    }
+}
+
+// ===================== 关闭逻辑 =====================
+closeModalBtn.onclick = function() {
+    modalMedia.classList.remove('active');
+};
+modalMedia.addEventListener('click', (e) => {
+    if (e.target === modalMedia) {
+        modalMedia.classList.remove('active');
+    }
+});
+
+// ===================== 图形树 =====================
+let treeState = {
+    canvas: null, ctx: null, rootName: "", baseNodes: new Set(), dynamicNodes: new Set(),
+    expanded: new Set(), offsetX: 0, offsetY: 0, scale: 0.8, nodesList: []
+};
+
+function buildBaseSet(rootPerson) {
+    if (!rootPerson) return new Set();
+    const nodes = new Set();
+    nodes.add(rootPerson.name);
+    function collectAncestors(p, gen) {
+        if (!p || gen > 3) return;
+        if (p.fatherObj) { nodes.add(p.fatherObj.name); collectAncestors(p.fatherObj, gen+1); }
+        if (p.motherObj) { nodes.add(p.motherObj.name); collectAncestors(p.motherObj, gen+1); }
+    }
+    collectAncestors(rootPerson, 1);
+    function collectDescendants(p, gen) {
+        if (!p || gen > 3) return;
+        for (const child of p.children) { nodes.add(child.name); collectDescendants(child, gen+1); }
+    }
+    collectDescendants(rootPerson, 1);
+    for (const spName of rootPerson.spouse) {
+        const spouse = peopleData[spName];
+        if (spouse) {
+            nodes.add(spouse.name);
+            if (spouse.fatherObj) nodes.add(spouse.fatherObj.name);
+            if (spouse.motherObj) nodes.add(spouse.motherObj.name);
+        }
+    }
+    for (const child of rootPerson.children) {
+        for (const sp of child.spouse) {
+            const spouse = peopleData[sp];
+            if (spouse) { nodes.add(sp); }
+        }
+    }
+    return nodes;
+}
+
+function toggleNode(nodeName) {
+    const node = peopleData[nodeName];
+    if (!node || node.children.length === 0) return false;
+    const rootPerson = peopleData[treeState.rootName];
+    const isParentOfRoot = rootPerson && (rootPerson.fatherObj?.name === nodeName || rootPerson.motherObj?.name === nodeName);
+    let targetChildren = isParentOfRoot ? node.children.filter(child => child.name !== treeState.rootName) : node.children;
+    if (targetChildren.length === 0) return false;
+    if (treeState.expanded.has(nodeName)) {
+        for (const child of targetChildren) {
+            treeState.dynamicNodes.delete(child.name);
+            if (treeState.expanded.has(child.name)) {
+                for (const grand of child.children) treeState.dynamicNodes.delete(grand.name);
+                treeState.expanded.delete(child.name);
+            }
+        }
+        treeState.expanded.delete(nodeName);
+    } else {
+        for (const child of targetChildren) treeState.dynamicNodes.add(child.name);
+        treeState.expanded.add(nodeName);
+    }
+    renderTree();
+    return true;
+}
+
+function renderTree() {
+    if (!treeState.canvas || !treeState.ctx) return;
+    const ctx = treeState.ctx;
+    const canvas = treeState.canvas;
+    const allNodes = new Set([...treeState.baseNodes, ...treeState.dynamicNodes]);
+    if (allNodes.size === 0) return;
+    const genMap = new Map();
+    const queue = [{ name: treeState.rootName, gen: 0 }];
+    const visited = new Set();
+    visited.add(treeState.rootName);
+    genMap.set(treeState.rootName, 0);
+    while (queue.length) {
+        const { name, gen } = queue.shift();
+        const p = peopleData[name];
+        if (!p) continue;
+        for (const child of p.children) {
+            if (allNodes.has(child.name) && !visited.has(child.name)) {
+                visited.add(child.name);
+                genMap.set(child.name, gen + 1);
+                queue.push({ name: child.name, gen: gen + 1 });
+            }
+        }
+        if (p.fatherObj && allNodes.has(p.fatherObj.name) && !visited.has(p.fatherObj.name)) {
+            visited.add(p.fatherObj.name);
+            genMap.set(p.fatherObj.name, gen - 1);
+            queue.push({ name: p.fatherObj.name, gen: gen - 1 });
+        }
+        if (p.motherObj && allNodes.has(p.motherObj.name) && !visited.has(p.motherObj.name)) {
+            visited.add(p.motherObj.name);
+            genMap.set(p.motherObj.name, gen - 1);
+            queue.push({ name: p.motherObj.name, gen: gen - 1 });
+        }
+        for (const spName of p.spouse) {
+            if (allNodes.has(spName) && !visited.has(spName)) {
+                visited.add(spName);
+                genMap.set(spName, gen);
+                queue.push({ name: spName, gen: gen });
+            }
+        }
+    }
+    const levels = new Map();
+    for (const name of allNodes) {
+        const gen = genMap.get(name);
+        if (gen === undefined) continue;
+        if (!levels.has(gen)) levels.set(gen, []);
+        levels.get(gen).push({ name, person: peopleData[name] });
+    }
+    for (const [gen, persons] of levels.entries()) {
+        persons.sort((a,b) => (a.person.birthYear ?? 9999) - (b.person.birthYear ?? 9999));
+        const adjusted = [];
+        const used = new Set();
+        for (let i = 0; i < persons.length; i++) {
+            if (used.has(persons[i].name)) continue;
+            adjusted.push(persons[i]);
+            used.add(persons[i].name);
+            for (const spName of persons[i].person.spouse) {
+                const spouse = persons.find(p => p.name === spName);
+                if (spouse && !used.has(spouse.name)) {
+                    adjusted.push(spouse);
+                    used.add(spouse.name);
+                    break;
+                }
+            }
+        }
+        levels.set(gen, adjusted);
+    }
+    const sortedGens = Array.from(levels.keys()).sort((a,b) => a - b);
+    const yStep = 140, xStep = 150;
+    const positions = new Map();
+    for (const gen of sortedGens) {
+        const persons = levels.get(gen);
+        const startX = -(persons.length - 1) * xStep / 2;
+        persons.forEach((item, idx) => {
+            positions.set(item.name, { x: startX + idx * xStep, y: gen * yStep });
+        });
+    }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.translate(treeState.offsetX, treeState.offsetY);
+    ctx.scale(treeState.scale, treeState.scale);
+    ctx.beginPath();
+    ctx.strokeStyle = '#cca47d';
+    ctx.lineWidth = 2.5;
+    for (const name of allNodes) {
+        const p = peopleData[name];
+        if (!p) continue;
+        const pos = positions.get(name);
+        if (!pos) continue;
+        for (const child of p.children) {
+            if (allNodes.has(child.name)) {
+                const cpos = positions.get(child.name);
+                if (cpos) {
+                    ctx.moveTo(pos.x, pos.y);
+                    ctx.lineTo(cpos.x, cpos.y);
+                }
+            }
+        }
+    }
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.strokeStyle = '#e74c3c';
+    ctx.lineWidth = 2.8;
+    const drawnPairs = new Set();
+    for (const name of allNodes) {
+        const p = peopleData[name];
+        if (!p || p.sex !== '男') continue;
+        const pos = positions.get(name);
+        if (!pos) continue;
+        for (const spName of p.spouse) {
+            if (allNodes.has(spName) && !drawnPairs.has(`${name}|${spName}`) && !drawnPairs.has(`${spName}|${name}`)) {
+                const spos = positions.get(spName);
+                if (spos) {
+                    ctx.moveTo(pos.x, pos.y);
+                    ctx.lineTo(spos.x, spos.y);
+                    drawnPairs.add(`${name}|${spName}`);
+                }
+            }
+        }
+    }
+    ctx.stroke();
+    treeState.nodesList = [];
+    for (const name of allNodes) {
+        const p = peopleData[name];
+        const pos = positions.get(name);
+        if (!p || !pos) continue;
+        const isAlive = !p.info || !/卒|故|病故|去世/.test(p.info);
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, 28, 0, 2 * Math.PI);
+        ctx.fillStyle = isAlive ? '#2ecc71' : '#95a5a6';
+        ctx.fill();
+        ctx.strokeStyle = '#8b5a2b';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const nameChars = name.split('');
+        if (nameChars.length <= 2) {
+            ctx.fillText(name, pos.x, pos.y);
+        } else {
+            ctx.fillText(nameChars.slice(0,2).join(''), pos.x, pos.y - 6);
+            ctx.fillText(nameChars.slice(2).join(''), pos.x, pos.y + 6);
+        }
+        if (p.birthYear) {
+            ctx.fillStyle = '#555';
+            ctx.font = '10px sans-serif';
+            ctx.fillText(p.birthYear, pos.x, pos.y + 38);
+        }
+        treeState.nodesList.push({ name: name, x: pos.x, y: pos.y });
+    }
+    ctx.restore();
+}
+
+function initTree(rootName) {
+    treeState.rootName = rootName;
+    const rootPerson = peopleData[rootName];
+    if (!rootPerson) return;
+    treeState.baseNodes = buildBaseSet(rootPerson);
+    treeState.dynamicNodes = new Set();
+    treeState.expanded = new Set();
+    treeState.scale = 0.75;
+    treeState.canvas = document.getElementById('treeCanvas');
+    treeState.ctx = treeState.canvas.getContext('2d');
+    document.getElementById('treeModal').classList.add('active');
+    setTimeout(() => {
+        const container = document.getElementById('treeCanvasContainer');
+        const rect = container.getBoundingClientRect();
+        const finalWidth = Math.max(rect.width, window.innerWidth * 0.95);
+        const finalHeight = Math.max(rect.height, window.innerHeight * 0.75);
+        treeState.canvas.width = finalWidth;
+        treeState.canvas.height = finalHeight;
+        treeState.offsetX = finalWidth / 2;
+        treeState.offsetY = 150;
+        renderTree();
+    }, 120);
+}
+
+function bindGestures() {
+    const canvas = document.getElementById('treeCanvas');
+    if (!canvas) return;
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+    let touchStartDist = 0, touchStartScale = 1;
+    const getTouchDistance = (touches) => Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+    canvas.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        dragStart.x = e.clientX - treeState.offsetX;
+        dragStart.y = e.clientY - treeState.offsetY;
+        e.preventDefault();
+    });
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        treeState.offsetX = e.clientX - dragStart.x;
+        treeState.offsetY = e.clientY - dragStart.y;
+        renderTree();
+    });
+    window.addEventListener('mouseup', () => { isDragging = false; });
+    canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        let factor = e.deltaY > 0 ? 0.9 : 1.1;
+        treeState.scale = Math.min(2.5, Math.max(0.3, treeState.scale * factor));
+        renderTree();
+    }, { passive: false });
+    canvas.addEventListener('touchstart', (e) => {
+        const touches = e.touches;
+        if (touches.length === 1) {
+            isDragging = true;
+            dragStart.x = touches[0].clientX - treeState.offsetX;
+            dragStart.y = touches[0].clientY - treeState.offsetY;
+        } else if (touches.length === 2) {
+            isDragging = false;
+            touchStartDist = getTouchDistance(touches);
+            touchStartScale = treeState.scale;
+        }
+    }, { passive: true });
+    canvas.addEventListener('touchmove', (e) => {
+        const touches = e.touches;
+        if (touches.length === 1 && isDragging) {
+            e.preventDefault();
+            treeState.offsetX = touches[0].clientX - dragStart.x;
+            treeState.offsetY = touches[0].clientY - dragStart.y;
+            renderTree();
+        } else if (touches.length === 2) {
+            e.preventDefault();
+            const dist = getTouchDistance(touches);
+            if (touchStartDist > 0) {
+                let newScale = touchStartScale * (dist / touchStartDist);
+                treeState.scale = Math.min(2.5, Math.max(0.3, newScale));
+                renderTree();
+            }
+        }
+    }, { passive: false });
+    canvas.addEventListener('touchend', () => { isDragging = false; touchStartDist = 0; });
+    canvas.addEventListener('click', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const clickX = (e.clientX - rect.left) * scaleX;
+        const clickY = (e.clientY - rect.top) * scaleY;
+        const worldX = (clickX - treeState.offsetX) / treeState.scale;
+        const worldY = (clickY - treeState.offsetY) / treeState.scale;
+        let clickedNode = null;
+        for (const node of treeState.nodesList) {
+            if (Math.hypot(worldX - node.x, worldY - node.y) <= 30) {
+                clickedNode = node.name;
+                break;
+            }
+        }
+        if (clickedNode) {
+            const person = peopleData[clickedNode];
+            if (person.children && person.children.length > 0) {
+                toggleNode(clickedNode);
+            } else {
+                showPersonMediaInModal(clickedNode);
+            }
+        }
+    });
+}
+
+function showTreeModal(rootName) {
+    initTree(rootName);
+    bindGestures();
+}
+
+// ===================== 资料统计 =====================
+async function loadLocalManifest() {
+    if (!rootHandle) return null;
+    try {
+        const fileHandle = await rootHandle.getFileHandle('manifest.json');
+        const file = await fileHandle.getFile();
+        const text = await file.text();
+        return JSON.parse(text);
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * 生成 manifest.json（遍历「资料」文件夹）
+ */
+async function buildManifest() {
+    if (!rootHandle) return null;
+    const manifest = {};
+    try {
+        // 查找「资料」文件夹
+        let dataDir = null;
+        for await (const entry of rootHandle.values()) {
+            if (entry.kind === 'directory' && entry.name === '资料') {
+                dataDir = entry;
+                break;
+            }
+        }
+        if (!dataDir) return null;
+
+        // 遍历「资料」文件夹下的所有人名子文件夹
+        for await (const entry of dataDir.values()) {
+            if (entry.kind === 'directory') {
+                const personName = entry.name;
+                const files = [];
+                try {
+                    const personDir = await dataDir.getDirectoryHandle(personName);
+                    for await (const fileEntry of personDir.values()) {
+                        if (fileEntry.kind === 'file') {
+                            files.push(fileEntry.name);
+                        }
+                    }
+                    if (files.length > 0) {
+                        manifest[personName] = files;
+                    }
+                } catch (e) {
+                    // 跳过无法读取的目录
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('生成 manifest 失败:', e);
+        return null;
+    }
+    return manifest;
+}
+
+/**
+ * 保存 manifest.json 到根目录
+ */
+async function saveManifest(manifest) {
+    if (!rootHandle) return false;
+    try {
+        const json = JSON.stringify(manifest, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        // 使用 File System Access API 保存
+        try {
+            let fileHandle;
+            try {
+                fileHandle = await rootHandle.getFileHandle('manifest.json');
+            } catch (e) {
+                fileHandle = await rootHandle.getFileHandle('manifest.json', { create: true });
+            }
+            const writable = await fileHandle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            console.log('✅ manifest.json 已保存到根目录');
+            return true;
+        } catch (e) {
+            // 如果 File System Access API 保存失败，降级为下载
+            console.warn('使用 File System API 保存失败，降级为下载:', e);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'manifest.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            return true;
+        }
+    } catch (e) {
+        console.error('保存 manifest.json 失败:', e);
+        return false;
+    }
+}
+
+async function showStatModal() {
+    statBody.innerHTML = '<div class="stat-empty">⏳ 正在统计资料，请稍候...</div>';
+    statModal.classList.add('active');
+
+    try {
+        let stats = [];
+        const names = Object.keys(peopleData || {});
+        if (names.length === 0) {
+            statBody.innerHTML = '<div class="stat-empty">⚠️ 家谱数据未加载，请先加载资料库。</div>';
+            return;
+        }
+
+        if (isOnline) {
+            statBody.innerHTML = '<div class="stat-empty">🌐 线上模式，从 GitHub 加载 manifest...</div>';
+            try {
+                const resp = await fetch('https://fengzd45.github.io/codex1/manifest.json');
+                if (resp.ok) {
+                    const manifest = await resp.json();
+                    const nameSet = new Set(names);
+                    for (const [name, files] of Object.entries(manifest)) {
+                        if (!nameSet.has(name)) continue;
+                        if (files.length === 0) continue;
+                        let txtCount = 0, imgCount = 0, vidCount = 0;
+                        for (const fname of files) {
+                            const ext = fname.split('.').pop().toLowerCase();
+                            if (['txt', 'md', 'json'].includes(ext)) txtCount++;
+                            else if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) imgCount++;
+                            else if (['mp4','webm','avi','mov','mp3','wav','flac','aac'].includes(ext)) vidCount++;
+                            else txtCount++;
+                        }
+                        stats.push({ name, txt: txtCount, img: imgCount, vid: vidCount, total: files.length });
+                    }
+                } else {
+                    throw new Error('manifest.json 不存在');
+                }
+            } catch (e) {
+                statBody.innerHTML = `<div class="stat-empty">❌ 线上模式需要 manifest.json，请先运行 build_manifest.py 生成并推送。</div>`;
+                return;
+            }
+        } else {
+            // ===== 线下模式 =====
+            if (!rootHandle) {
+                statBody.innerHTML = '<div class="stat-empty">⚠️ 请先点击「加载资料库」授权文件夹。</div>';
+                return;
+            }
+
+            // 尝试读取本地 manifest.json
+            let manifest = await loadLocalManifest();
+            
+            if (!manifest || Object.keys(manifest).length === 0) {
+                // ===== 没有 manifest.json，自动生成 =====
+                statBody.innerHTML = '<div class="stat-empty">📂 未找到 manifest.json，正在自动生成...</div>';
+                
+                manifest = await buildManifest();
+                
+                if (!manifest || Object.keys(manifest).length === 0) {
+                    statBody.innerHTML = '<div class="stat-empty">❌ 未找到任何资料文件。<br>请确保「资料」文件夹下有人物子文件夹。</div>';
+                    return;
+                }
+
+                // 保存 manifest.json
+                const saved = await saveManifest(manifest);
+                if (saved) {
+                    statBody.innerHTML = '<div class="stat-empty">✅ 已自动生成 manifest.json 并保存到根目录。</div>';
+                } else {
+                    statBody.innerHTML = '<div class="stat-empty">⚠️ manifest.json 生成成功，但保存失败。<br>请手动将下载的文件放到根目录。</div>';
+                }
+            }
+
+            // 使用 manifest 统计
+            const nameSet = new Set(names);
+            for (const [name, files] of Object.entries(manifest)) {
+                if (!nameSet.has(name)) continue;
+                if (files.length === 0) continue;
+                let txtCount = 0, imgCount = 0, vidCount = 0;
+                for (const fname of files) {
+                    const ext = fname.split('.').pop().toLowerCase();
+                    if (['txt', 'md', 'json'].includes(ext)) txtCount++;
+                    else if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) imgCount++;
+                    else if (['mp4','webm','avi','mov','mp3','wav','flac','aac'].includes(ext)) vidCount++;
+                    else txtCount++;
+                }
+                stats.push({ name, txt: txtCount, img: imgCount, vid: vidCount, total: files.length });
+            }
+        }
+
+        stats.sort((a,b) => b.total - a.total);
+
+        if (stats.length === 0) {
+            statBody.innerHTML = '<div class="stat-empty">📭 暂未找到任何有资料的人物。</div>';
+            return;
+        }
+
+        let html = `<div class="stat-summary">📊 共 ${stats.length} 位人物有资料，总文件数 ${stats.reduce((s,o) => s + o.total, 0)}</div>`;
+        html += `<table class="stat-table"><thead><tr><th>姓名</th><th class="num">📄 文章</th><th class="num">🖼️ 图片</th><th class="num">🎵 音视频</th><th class="num">📦 合计</th></tr></thead><tbody>`;
+        for (const s of stats) {
+            html += `<tr><td><span class="clickable-name" data-name="${escapeHtml(s.name)}">${escapeHtml(s.name)}</span></td><td class="num">${s.txt}</td><td class="num">${s.img}</td><td class="num">${s.vid}</td><td class="num"><strong>${s.total}</strong></td></tr>`;
+        }
+        html += `</tbody></table>`;
+        statBody.innerHTML = html;
+
+        statBody.querySelectorAll('.clickable-name').forEach(el => {
+            el.onclick = function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                const name = this.getAttribute('data-name');
+                if (name && peopleData[name]) {
+                    showPersonMediaInModal(name);
+                }
+                return false;
+            };
+        });
+
+    } catch (err) {
+        console.error(err);
+        statBody.innerHTML = `<div class="stat-empty">❌ 统计失败: ${err.message}</div>`;
+    }
+}
+
+// ===================== 统计页关闭 =====================
+document.getElementById('closeStatModalBtn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    statModal.classList.remove('active');
+});
+
+statModal.addEventListener('click', function(e) {
+    if (e.target === statModal) {
+        statModal.classList.remove('active');
+    }
+});
+
+// ===================== 启用 UI =====================
+function enableUI() {
+    document.getElementById('startName').disabled = false;
+    document.getElementById('searchBtn').disabled = false;
+    document.getElementById('treeBtn').disabled = false;
+    document.getElementById('statBtn').disabled = false;
+    if (isOnline) {
+        selectFolderBtn.disabled = true;
+        selectFolderBtn.textContent = '📂 线上模式已启用';
+        selectFolderBtn.style.opacity = '0.6';
+    } else {
+        selectFolderBtn.disabled = false;
+    }
+}
+
+// ===================== 事件绑定 =====================
+function search() {
+    const startName = document.getElementById('startName').value.trim();
+    if (!startName) { outputPre.innerHTML = '<pre>请输入姓名</pre>'; return; }
+    if (!peopleData) {
+        outputPre.innerHTML = '<pre>❌ 数据未加载！请先点击「加载资料库」加载 family_data.jsonl。</pre>';
+        return;
+    }
+    if (!peopleData[startName]) { outputPre.innerHTML = `<pre>❌ 错误：'${startName}' 不在家谱中。</pre>`; return; }
+    outputPre.innerHTML = '<pre>正在查询关系...</pre>';
+    setTimeout(() => {
+        try {
+            const relations = bfsRelationships(startName, peopleData);
+            const outputText = printRelationshipsWithClick(startName, relations, peopleData);
+            outputPre.innerHTML = `<pre>========== 从 ${escapeHtml(startName)} 出发的家族关系树 ==========\n${outputText}</pre>`;
+            document.querySelectorAll('.clickable-name').forEach(el => {
+                el.onclick = function(e) {
+                    const name = this.getAttribute('data-name');
+                    if (name && peopleData[name]) showPersonMediaInModal(name);
+                };
+            });
+        } catch (error) {
+            console.error("渲染家族树时发生致命错误:", error);
+            outputPre.innerHTML = `<pre>❌ 检测到数据异常，已阻止页面卡死。<br>技术原因：${error.message}</pre>`;
+        }
+    }, 50);
+}
+
+document.getElementById('searchBtn').addEventListener('click', search);
+document.getElementById('treeBtn').addEventListener('click', () => {
+    let startName = document.getElementById('startName').value.trim();
+    if (!startName) { alert('请先输入一个姓名'); return; }
+    if (!peopleData) {
+        alert('❌ 数据未加载！请先点击「加载资料库」加载 family_data.jsonl。');
+        return;
+    }
+    if (!peopleData[startName]) { alert(`“${startName}” 不在家谱中`); return; }
+    showTreeModal(startName);
+});
+document.getElementById('startName').addEventListener('keypress', (e) => { if (e.key === 'Enter') search(); });
+
+const closeTreeModalBtn = document.getElementById('closeTreeModalBtn');
+closeTreeModalBtn.onclick = () => {
+    document.getElementById('treeModal').classList.remove('active');
+    treeState.canvas = null;
+};
+document.getElementById('treeModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('treeModal')) closeTreeModalBtn.click();
+});
+
+document.getElementById('statBtn').addEventListener('click', showStatModal);
+
+const toTopBtn = document.getElementById('toTopBtn');
+window.addEventListener('scroll', () => { toTopBtn.style.display = window.scrollY > 300 ? 'flex' : 'none'; });
+toTopBtn.addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+
+// ===================== 自动加载 =====================
+async function tryAutoLoad() {
+    if (window.location.protocol === 'file:') {
+        folderStatusSpan.innerHTML = `📁 请点击「加载资料库」选择包含 family_data.jsonl 的文件夹。`;
+        folderStatusSpan.style.color = '#8b5a2b';
+        outputPre.innerHTML = `<pre>⏳ 请点击上方「加载资料库」按钮，选择包含 family_data.jsonl 及「资料」子文件夹的目录。</pre>`;
+        return;
+    }
+    if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+        try {
+            const resp = await fetch('family_data.jsonl');
+            if (resp.ok) {
+                const text = await resp.text();
+                const parsed = parseJsonl(text);
+                if (Object.keys(parsed).length > 0) {
+                    peopleData = parsed;
+                    dataLoaded = true;
+                    enableUI();
+                    folderStatusSpan.innerHTML = `✅ 自动加载成功！共 ${Object.keys(peopleData).length} 位人物。`;
+                    folderStatusSpan.style.color = '#2c5a2c';
+                    outputPre.innerHTML = `<pre>✅ 自动加载 family_data.jsonl 成功！共 ${Object.keys(peopleData).length} 位人物。<br>如需多媒体资料，请点击「加载资料库」授权「资料」文件夹。</pre>`;
+                    if (peopleData['冯宗德']) document.getElementById('startName').value = '冯宗德';
+                    else {
+                        const first = Object.keys(peopleData)[0] || '';
+                        document.getElementById('startName').value = first;
+                    }
+                    return;
+                }
+            }
+        } catch(e) {
+            console.warn("自动加载失败，降级至手动授权");
+        }
+    }
+    folderStatusSpan.innerHTML = `📁 请点击「加载资料库」选择包含 family_data.jsonl 的文件夹。`;
+    folderStatusSpan.style.color = '#8b5a2b';
+    outputPre.innerHTML = `<pre>⏳ 未检测到 family_data.jsonl。<br><br>请点击上方「加载资料库」按钮，选择包含该文件及「资料」子文件夹的目录。</pre>`;
+}
+
+if (isOnline) {
+    tryAutoLoad();
+    folderStatusSpan.innerHTML = `🌐 线上模式（GitHub Pages）· 资料自动加载，无需授权`;
+    selectFolderBtn.textContent = '📂 线上模式已启用';
+    selectFolderBtn.disabled = true;
+    selectFolderBtn.style.opacity = '0.6';
+    selectFolderBtn.style.cursor = 'default';
+    loadManifest();
+} else {
+    tryAutoLoad();
+}
+
+</script>
+</body>
+</html>
