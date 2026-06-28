@@ -118,7 +118,7 @@
             overflow-y: auto;
         }
         .preview-image { max-width: 100%; border-radius: 12px; display: block; margin: 0 auto; }
-        .preview-text { white-space: pre-wrap; font-family: monospace; background: #f8f9fa; padding: 12px; border-radius: 12px; font-size: 0.8rem; }
+        .preview-text { white-space: pre-wrap; font-family: monospace; background: #f8f9fa; padding: 12px; border-radius: 12px; font-size: 0.8rem; max-height: none; overflow: visible; }
         .empty-media-modal { text-align: center; padding: 32px 20px; color: #a0a090; }
         .download-link-modal {
             display: inline-block;
@@ -162,7 +162,6 @@
             <span class="folder-status" id="folderStatus">📁 正在检测运行环境...</span>
             <button class="folder-btn" id="selectFolderBtn">📂 加载资料库</button>
         </div>
-        <!-- 手动隐藏使用说明，保留 DOM 以维持功能 -->
         <details class="manual" style="display:none;">
             <summary>📖 使用说明</summary>
             <div>• 初始树包含本人、上三辈祖先、下三辈后代、配偶的父母及祖父母。<br>• 单击父亲或母亲节点，动态显示其所有其他子女（兄弟姐妹）。<br>• 单击兄弟姐妹节点，动态显示其子女（堂表兄妹）。再次单击收起。<br>• 无子女节点打开多媒体资料弹窗。<br>• 支持鼠标/手指拖拽、滚轮/双指缩放。<br>• 「🔍 查询关系」可查看完整亲属关系树。</div>
@@ -571,7 +570,6 @@ async function showPersonMediaInModal(personName) {
         return;
     }
 
-    // 关键优化1：从 manifest 获取文件名（不读取文件内容）
     let fileNames = [];
     if (manifestCache && manifestCache[personName]) {
         fileNames = manifestCache[personName];
@@ -584,7 +582,6 @@ async function showPersonMediaInModal(personName) {
     }
 
     if (fileNames.length === 0) {
-        // 降级：遍历获取文件名（不读取内容）
         for await (const entry of targetDir.values()) {
             if (entry.kind === 'file') {
                 fileNames.push(entry.name);
@@ -597,7 +594,6 @@ async function showPersonMediaInModal(personName) {
         return;
     }
 
-    // 关键优化2：只显示文件名列表，不读取文件内容
     fileNames.sort((a,b) => a.localeCompare(b));
     let listHtml = `<div class="file-list-modal">`;
     for (const fname of fileNames) {
@@ -627,7 +623,6 @@ async function showPersonMediaInModal(personName) {
         };
     });
 
-    // 自动预览第一个文件
     if (fileNames[0] && previewDiv) {
         try {
             const fileHandle = await targetDir.getFileHandle(fileNames[0]);
@@ -989,14 +984,10 @@ async function loadLocalManifest() {
     }
 }
 
-/**
- * 生成 manifest.json（遍历「资料」文件夹）
- */
 async function buildManifest() {
     if (!rootHandle) return null;
     const manifest = {};
     try {
-        // 查找「资料」文件夹
         let dataDir = null;
         for await (const entry of rootHandle.values()) {
             if (entry.kind === 'directory' && entry.name === '资料') {
@@ -1005,8 +996,6 @@ async function buildManifest() {
             }
         }
         if (!dataDir) return null;
-
-        // 遍历「资料」文件夹下的所有人名子文件夹
         for await (const entry of dataDir.values()) {
             if (entry.kind === 'directory') {
                 const personName = entry.name;
@@ -1021,9 +1010,7 @@ async function buildManifest() {
                     if (files.length > 0) {
                         manifest[personName] = files;
                     }
-                } catch (e) {
-                    // 跳过无法读取的目录
-                }
+                } catch (e) {}
             }
         }
     } catch (e) {
@@ -1033,15 +1020,11 @@ async function buildManifest() {
     return manifest;
 }
 
-/**
- * 保存 manifest.json 到根目录
- */
 async function saveManifest(manifest) {
     if (!rootHandle) return false;
     try {
         const json = JSON.stringify(manifest, null, 2);
         const blob = new Blob([json], { type: 'application/json' });
-        // 使用 File System Access API 保存
         try {
             let fileHandle;
             try {
@@ -1055,7 +1038,6 @@ async function saveManifest(manifest) {
             console.log('✅ manifest.json 已保存到根目录');
             return true;
         } catch (e) {
-            // 如果 File System Access API 保存失败，降级为下载
             console.warn('使用 File System API 保存失败，降级为下载:', e);
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -1113,27 +1095,18 @@ async function showStatModal() {
                 return;
             }
         } else {
-            // ===== 线下模式 =====
             if (!rootHandle) {
                 statBody.innerHTML = '<div class="stat-empty">⚠️ 请先点击「加载资料库」授权文件夹。</div>';
                 return;
             }
-
-            // 尝试读取本地 manifest.json
             let manifest = await loadLocalManifest();
-            
             if (!manifest || Object.keys(manifest).length === 0) {
-                // ===== 没有 manifest.json，自动生成 =====
                 statBody.innerHTML = '<div class="stat-empty">📂 未找到 manifest.json，正在自动生成...</div>';
-                
                 manifest = await buildManifest();
-                
                 if (!manifest || Object.keys(manifest).length === 0) {
                     statBody.innerHTML = '<div class="stat-empty">❌ 未找到任何资料文件。<br>请确保「资料」文件夹下有人物子文件夹。</div>';
                     return;
                 }
-
-                // 保存 manifest.json
                 const saved = await saveManifest(manifest);
                 if (saved) {
                     statBody.innerHTML = '<div class="stat-empty">✅ 已自动生成 manifest.json 并保存到根目录。</div>';
@@ -1141,8 +1114,6 @@ async function showStatModal() {
                     statBody.innerHTML = '<div class="stat-empty">⚠️ manifest.json 生成成功，但保存失败。<br>请手动将下载的文件放到根目录。</div>';
                 }
             }
-
-            // 使用 manifest 统计
             const nameSet = new Set(names);
             for (const [name, files] of Object.entries(manifest)) {
                 if (!nameSet.has(name)) continue;
