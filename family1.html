@@ -20,7 +20,7 @@
         .input-area input { flex: 1; padding: 12px 16px; font-size: 1rem; border: 1px solid #ddd; border-radius: 30px; outline: none; }
         .input-area button { background: #8b5a2b; color: white; border: none; padding: 12px 24px; border-radius: 30px; cursor: pointer; font-weight: bold; }
         .input-area button:disabled { opacity: 0.5; cursor: not-allowed; background: #aaa; }
-        .stat-btn { background: #2c5a2c; } 
+        .stat-btn { background: #2c5a2c; }
         .output { background: #faf8f0; border-radius: 16px; padding: 16px; max-height: 600px; overflow-y: auto; font-size: 0.85rem; line-height: 1.5; border: 1px solid #e0d6c0; }
         .output pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-family: monospace; font-size: 0.8rem; }
         .clickable-name { cursor: pointer; color: #8b5a2b; text-decoration: underline dotted; transition: all 0.2s; }
@@ -31,104 +31,51 @@
         audio, video { max-width: 100%; }
 
         .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(4px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            visibility: hidden;
-            opacity: 0;
-            transition: visibility 0.2s, opacity 0.2s;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center;
+            visibility: hidden; opacity: 0; transition: visibility 0.2s, opacity 0.2s;
         }
         .modal-overlay.active { visibility: visible; opacity: 1; }
-
-        #statModal { z-index: 1000; }
-        #mediaModal { z-index: 1001; }
-        #treeModal { z-index: 999; }
-
         .modal-container {
-            background: #fffef7;
-            border-radius: 32px;
-            width: 90%;
-            max-width: 900px;
-            max-height: 85vh;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            overflow: hidden;
+            background: #fffef7; border-radius: 32px; width: 90%; max-width: 900px; max-height: 85vh;
+            display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); overflow: hidden;
         }
         .modal-header {
-            background: #8b5a2b;
-            color: white;
-            padding: 16px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
+            background: #8b5a2b; color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; font-weight: bold;
         }
         .modal-header h3 { margin: 0; font-size: 1.2rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .modal-close {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 28px;
-            cursor: pointer;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 40px;
+            background: none; border: none; color: white; font-size: 28px; cursor: pointer;
+            width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 40px;
         }
         .modal-close:hover { background: rgba(255, 255, 255, 0.2); }
         .modal-body { flex: 1; overflow-y: auto; padding: 16px 20px; background: #fefcf5; }
 
         .file-list-modal {
-            background: #faf8f0;
-            border-radius: 20px;
-            padding: 8px 0;
-            margin-bottom: 20px;
-            max-height: 260px;
-            overflow-y: auto;
-            border: 1px solid #e0d6c0;
+            background: #faf8f0; border-radius: 20px; padding: 8px 0; margin-bottom: 20px;
+            max-height: 260px; overflow-y: auto; border: 1px solid #e0d6c0;
         }
         .file-item-modal {
-            display: flex;
-            align-items: center;
-            padding: 10px 16px;
-            border-bottom: 1px solid #e8e0d0;
-            cursor: pointer;
-            transition: background 0.15s;
+            display: flex; align-items: center; padding: 10px 16px; border-bottom: 1px solid #e8e0d0; cursor: pointer; transition: background 0.15s;
         }
         .file-item-modal:hover { background: #f0e8d8; }
         .file-icon-modal { font-size: 1.3rem; margin-right: 14px; width: 32px; text-align: center; }
         .file-name-modal { flex: 1; word-break: break-all; font-size: 0.9rem; }
         .media-preview-modal {
-            background: white;
-            border-radius: 20px;
-            padding: 16px;
-            margin-top: 8px;
-            border: 1px solid #e0d6c0;
-            max-height: 320px;
-            overflow-y: auto;
+            background: white; border-radius: 20px; padding: 16px; margin-top: 8px; border: 1px solid #e0d6c0;
+            max-height: 320px !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
         }
         .preview-image { max-width: 100%; border-radius: 12px; display: block; margin: 0 auto; }
-        .preview-text { white-space: pre-wrap; font-family: monospace; background: #f8f9fa; padding: 12px; border-radius: 12px; font-size: 0.8rem; }
+        .preview-text {
+            white-space: pre-wrap; font-family: monospace; background: #f8f9fa; padding: 12px; border-radius: 12px;
+            font-size: 0.8rem; word-wrap: break-word; overflow-wrap: break-word;
+        }
         .empty-media-modal { text-align: center; padding: 32px 20px; color: #a0a090; }
         .download-link-modal {
-            display: inline-block;
-            margin-top: 12px;
-            padding: 6px 14px;
-            background: #8b5a2b;
-            color: white;
-            text-decoration: none;
-            border-radius: 30px;
-            font-size: 0.75rem;
+            display: inline-block; margin-top: 12px; padding: 6px 14px; background: #8b5a2b; color: white;
+            text-decoration: none; border-radius: 30px; font-size: 0.75rem;
         }
         details.manual { background: #fff3e0; padding: 8px 12px; border-radius: 12px; margin-bottom: 12px; font-size: 0.75rem; }
         details.manual summary { cursor: pointer; font-weight: bold; color: #8b5a2b; }
@@ -138,17 +85,17 @@
         #treeCanvasContainer { flex: 1; overflow: auto; background: #fff; position: relative; -webkit-overflow-scrolling: touch; }
         #treeCanvas { display: block; background: #fff; cursor: pointer; touch-action: none; position: absolute; top: 0; left: 0; }
 
+        #statModal { z-index: 1000; }
         #statModal .modal-container { max-width: 800px; }
         .stat-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
         .stat-table th { background: #8b5a2b; color: white; padding: 10px 8px; text-align: left; }
         .stat-table td { padding: 8px 8px; border-bottom: 1px solid #e0d6c0; }
         .stat-table tr:hover { background: #f0e8d8; }
         .stat-table .num { text-align: right; padding-right: 16px; }
-        .stat-name { font-weight: 500; color: #4a2a0a; cursor: pointer; }
-        .stat-name:hover { color: #c07830; background-color: #f0e8d8; border-radius: 4px; }
         .stat-empty { text-align: center; color: #999; padding: 30px 0; }
-        #statModal .modal-body { padding: 12px 20px; }
         .stat-summary { background: #f0e8d8; border-radius: 20px; padding: 8px 16px; margin-bottom: 16px; display: inline-block; font-size: 0.85rem; }
+
+        #mediaModal { z-index: 1001; }
     </style>
 </head>
 <body>
@@ -215,16 +162,11 @@
 </div>
 
 <script>
-// ===================== 全局变量 =====================
-let peopleData = null;
-let dataLoaded = false;
-let rootHandle = null;
-let folderHandle = null;
-let manifestCache = null;
-const isOnline = window.location.protocol === 'https:';
-const GITHUB_BASE = 'https://fengzd45.github.io/codex1/%E8%B5%84%E6%96%99/';
+// ====================================================================
+// 完整 JavaScript 实现（含线下直接读取 manifest.json 功能）
+// ====================================================================
 
-// ===================== Person类 =====================
+// --------------------- Person类与关系构建 ---------------------
 class Person {
     constructor(data) {
         this.name = data.n;
@@ -281,7 +223,7 @@ function escapeHtml(str) {
     return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
 }
 
-// ===================== 关系查询 =====================
+// --------------------- 关系查询函数 ---------------------
 function bfsRelationships(startName, people) {
     const start = people[startName];
     if (!start) return {};
@@ -301,34 +243,262 @@ function bfsRelationships(startName, people) {
     }
     return visited;
 }
-function getSimpleRelationship(start, target, pathPersons, ops) {
+function compareBirth(a, b) {
+    if (a.birthYear !== null && b.birthYear !== null) return b.birthYear - a.birthYear;
+    return 0;
+}
+const baseSpouseMap = new Map();
+const baseSpouseMapData = [
+    ["兄","男","嫂"], ["弟","男","弟媳"], ["姐","女","姐夫"], ["妹","女","妹夫"],
+    ["伯父","男","伯母"], ["叔父","男","叔母"], ["姑母","女","姑父"],
+    ["舅父","男","舅母"], ["姨母","女","姨父"],
+    ["祖父","男","祖母"], ["祖母","女","祖父"],
+    ["外祖父","男","外祖母"], ["外祖母","女","外祖父"],
+    ["曾祖父","男","曾祖母"], ["曾祖母","女","曾祖父"],
+    ["外曾祖父","男","外曾祖母"], ["外曾祖母","女","外曾祖父"],
+    ["高祖父","男","高祖母"], ["高祖母","女","高祖父"],
+    ["外高祖父","男","外高祖母"], ["外高祖母","女","外高祖父"],
+    ["天祖父","男","天祖母"], ["天祖母","女","天祖父"],
+    ["烈祖","男","烈祖母"], ["烈祖母","女","烈祖"],
+    ["太祖","男","太祖母"], ["太祖母","女","太祖"],
+    ["远祖","男","远祖母"], ["远祖母","女","远祖"],
+    ["鼻祖","男","鼻祖母"], ["鼻祖母","女","鼻祖"],
+    ["儿子","男","儿媳"], ["女儿","女","女婿"],
+    ["孙子","男","孙媳"], ["孙女","女","孙女婿"],
+    ["曾孙","男","曾孙媳"], ["曾孙女","女","曾孙女婿"],
+    ["玄孙","男","玄孙媳"], ["玄孙女","女","玄孙女婿"],
+    ["来孙","男","来孙媳"], ["来孙女","女","来孙女婿"],
+    ["晜孙","男","晜孙媳"], ["晜孙女","女","晜孙女婿"],
+    ["仍孙","男","仍孙媳"], ["仍孙女","女","仍孙女婿"],
+    ["云孙","男","云孙媳"], ["云孙女","女","云孙女婿"],
+    ["耳孙","男","耳孙媳"], ["耳孙女","女","耳孙女婿"],
+    ["侄子","男","侄媳"], ["侄女","女","侄女婿"],
+    ["外甥","男","外甥媳"], ["外甥女","女","外甥女婿"],
+    ["亲家公","男","亲家母"], ["亲家母","女","亲家公"],
+    ["内兄","男","内嫂"], ["内弟","男","内弟媳"], ["内姐","女","内姐夫"], ["内妹","女","内妹夫"],
+    ["侄孙","男","侄孙媳"], ["侄孙女","女","侄孙女婿"],
+    ["外甥孙","男","外甥孙媳"], ["外甥孙女","女","外甥孙女婿"],
+    ["侄曾孙","男","侄曾孙媳"], ["侄曾孙女","女","侄曾孙女婿"],
+    ["外甥曾孙","男","外甥曾孙媳"], ["外甥曾孙女","女","外甥曾孙女婿"],
+    ["兄弟","男","兄弟的配偶"], ["姐妹","女","姐妹的配偶"],
+    ["伯叔","男","伯叔的配偶"], ["姑","女","姑的配偶"],
+    ["舅","男","舅的配偶"], ["姨","女","姨的配偶"]
+];
+for (const [rel, sex, sp] of baseSpouseMapData) baseSpouseMap.set([rel, sex].join('|'), sp);
+function getSpouseWithPrefix(rel, baseSex) {
+    const prefixes = ["堂","姑表","舅表","姨表","姻","内","亲家","外","岳","外岳","夫家","妻家","再从","族","远"];
+    for (const prefix of prefixes) {
+        if (rel.startsWith(prefix)) {
+            const base = rel.slice(prefix.length);
+            if ((base === "兄弟" || base === "兄" || base === "弟") && baseSex === '男') return prefix + "嫂";
+            if ((base === "姐妹" || base === "姐" || base === "妹") && baseSex === '女') return prefix + base + "夫";
+            const key = [base, baseSex].join('|');
+            if (baseSpouseMap.has(key)) return prefix + baseSpouseMap.get(key);
+            const sub = getSpouseWithPrefix(base, baseSex);
+            if (sub) return prefix + sub;
+        }
+    }
+    return null;
+}
+function getRelationship(start, target, pathPersons, ops, people) {
     const upSteps = ops.filter(op => op === 'f' || op === 'm').length;
     const downSteps = ops.filter(op => op === 'ch').length;
+    const spCount = ops.filter(op => op === 'sp').length;
     if (ops.length === 1 && ops[0] === 'sp') return "配偶";
-    if (downSteps === 0 && upSteps === 1) return target.sex === '男' ? "父亲" : "母亲";
-    if (downSteps === 0 && upSteps === 2) return target.sex === '男' ? (ops.every(o=>o==='f')?"祖父":"外祖父") : (ops.every(o=>o==='f')?"祖母":"外祖母");
-    if (downSteps === 0 && upSteps === 3) return target.sex === '男' ? (ops.every(o=>o==='f')?"曾祖父":"外曾祖父") : (ops.every(o=>o==='f')?"曾祖母":"外曾祖母");
-    if (upSteps === 0 && downSteps === 1) return target.sex === '男' ? "儿子" : "女儿";
-    if (upSteps === 0 && downSteps === 2) return target.sex === '男' ? "孙子" : "孙女";
-    if (upSteps === 0 && downSteps === 3) return target.sex === '男' ? "曾孙" : "曾孙女";
-    if (upSteps === 1 && downSteps === 1) {
-        const sib = pathPersons[pathPersons.length-2];
-        if (sib && sib.sex === '男') return target.sex === '男' ? "侄子" : "侄女";
-        if (sib && sib.sex === '女') return target.sex === '男' ? "外甥" : "外甥女";
-        return target.sex === '男' ? "侄子" : "侄女";
+    if (ops.length === 2 && ops[0] === 'ch' && ops[1] === 'sp') {
+        const child = pathPersons[0] || null;
+        if (child) return child.sex === '男' ? (target.sex === '女' ? "儿媳" : "女婿") : (target.sex === '男' ? "女婿" : "儿媳");
+        return target.sex === '女' ? "儿媳" : "女婿";
+    }
+    if (ops.length >= 3 && ops[0]==='ch' && ops[1]==='sp' && (ops[2]==='f' || ops[2]==='m')) {
+        const baseOps = ops.slice(2), basePersons = pathPersons.slice(2);
+        const baseRel = getRelationship(start, target, basePersons, baseOps, people);
+        return "亲家" + baseRel;
+    }
+    if (ops.length && ops[0] === 'sp' && spCount === 1 && downSteps === 0) {
+        const spouse = pathPersons[0] || null;
+        if (!spouse) return "未知";
+        const baseOps = ops.slice(1), basePersons = pathPersons.slice(1);
+        const relFromSpouse = getRelationship(spouse, target, basePersons, baseOps, people);
+        if (start.sex === '男') {
+            if (spouse.sex === '女') return (baseOps.length && baseOps[0] === 'm') ? "外岳" + relFromSpouse : "岳" + relFromSpouse;
+            else return "岳" + relFromSpouse;
+        } else {
+            if (spouse.sex === '男') {
+                if (relFromSpouse.includes("父")) return relFromSpouse.replace("父","公");
+                if (relFromSpouse.includes("母")) return relFromSpouse.replace("母","婆");
+                if (relFromSpouse.includes("祖父")) return relFromSpouse.replace("祖父","祖公");
+                if (relFromSpouse.includes("祖母")) return relFromSpouse.replace("祖母","祖婆");
+                return "夫家" + relFromSpouse;
+            } else return "妻家" + relFromSpouse;
+        }
+    }
+    if (ops.length && ops[0] === 'sp' && upSteps === 1 && downSteps === 1) {
+        const spouse = pathPersons[0];
+        if (spouse) {
+            const diff = compareBirth(spouse, target);
+            if (diff < 0) return target.sex === '男' ? "姻兄" : "姻姐";
+            else if (diff > 0) return target.sex === '男' ? "姻弟" : "姻妹";
+            else return target.sex === '男' ? "姻兄弟" : "姻姐妹";
+        }
+        return target.sex === '男' ? "姻兄弟" : "姻姐妹";
+    }
+    if (ops.length && ops[0] === 'sp' && spCount === 1) {
+        const baseOps = ops.slice(1), basePersons = pathPersons.slice(1);
+        const baseRel = getRelationship(start, target, basePersons, baseOps, people);
+        return "姻" + baseRel;
+    }
+    if (downSteps === 0) {
+        const up = upSteps;
+        const allF = ops.every(op => op === 'f');
+        if (up === 1) return target.sex === '男' ? "父亲" : "母亲";
+        if (up === 2) return target.sex === '男' ? (allF ? "祖父" : "外祖父") : (allF ? "祖母" : "外祖母");
+        if (up === 3) return target.sex === '男' ? (allF ? "曾祖父" : "外曾祖父") : (allF ? "曾祖母" : "外曾祖母");
+        if (up === 4) return target.sex === '男' ? (allF ? "高祖父" : "外高祖父") : (allF ? "高祖母" : "外高祖母");
+        if (up === 5) return target.sex === '男' ? (allF ? "天祖父" : "外天祖父") : (allF ? "天祖母" : "外天祖母");
+        if (up === 6) return target.sex === '男' ? "烈祖" : "烈祖母";
+        if (up === 7) return target.sex === '男' ? "太祖" : "太祖母";
+        if (up === 8) return target.sex === '男' ? "远祖" : "远祖母";
+        if (up === 9) return target.sex === '男' ? "鼻祖" : "鼻祖母";
+        return (allF ? "远祖" : "外远祖") + (target.sex === '男' ? "" : "母");
+    }
+    if (upSteps === 0) {
+        const down = downSteps;
+        const mapping = { 1: ["儿子","女儿"], 2: ["孙子","孙女"], 3: ["曾孙","曾孙女"], 4: ["玄孙","玄孙女"], 5: ["来孙","来孙女"], 6: ["晜孙","晜孙女"], 7: ["仍孙","仍孙女"], 8: ["云孙","云孙女"], 9: ["耳孙","耳孙女"] };
+        if (mapping[down]) return target.sex === '男' ? mapping[down][0] : mapping[down][1];
+        return target.sex === '男' ? "远孙" : "远孙女";
     }
     if (upSteps === 2 && downSteps === 1) {
-        if (ops[0]==='f' && ops[1]==='f') return target.sex === '男' ? "伯叔" : "姑母";
-        if (ops[0]==='m' || ops[1]==='m') return target.sex === '男' ? "舅父" : "姨母";
-        return target.sex === '男' ? "伯叔" : "姑母";
+        if (ops.length===3 && ops[0]==='f' && ops[1]==='f' && ops[2]==='ch') {
+            const father = pathPersons[0] || null;
+            if (father) {
+                const diff = compareBirth(father, target);
+                if (target.sex === '男') return diff < 0 ? "伯父" : (diff > 0 ? "叔父" : "伯叔");
+                else return "姑母";
+            } else return target.sex === '男' ? "伯叔" : "姑母";
+        }
+        if (ops.length===3 && (ops[0]==='m'||ops[0]==='f') && ops[1]==='m' && ops[2]==='ch') return target.sex === '男' ? "舅父" : "姨母";
     }
-    if (upSteps === downSteps && upSteps === 1) {
-        const diff = (start.birthYear||0) - (target.birthYear||0);
-        if (target.sex === '男') return diff > 0 ? "兄" : (diff < 0 ? "弟" : "兄弟");
-        else return diff > 0 ? "姐" : (diff < 0 ? "妹" : "姐妹");
+    if (upSteps === 1 && downSteps === 2) {
+        const keyPerson = pathPersons[pathPersons.length-2] || null;
+        const siblingSex = keyPerson ? keyPerson.sex : null;
+        if (siblingSex === '男') return target.sex === '男' ? "侄子" : "侄女";
+        else if (siblingSex === '女') return target.sex === '男' ? "外甥" : "外甥女";
+        else return (ops[0] === 'f') ? (target.sex === '男' ? "侄子" : "侄女") : (target.sex === '男' ? "外甥" : "外甥女");
     }
-    if (ops.includes('sp')) return "姻亲";
-    return "亲属";
+    if (ops.length && ops[ops.length-1] === 'sp') {
+        const baseOps = ops.slice(0, -1);
+        const basePersons = pathPersons.slice(0, -1);
+        const basePerson = pathPersons[pathPersons.length-2] || null;
+        if (!basePerson) return "未知";
+        const baseRel = getRelationship(start, basePerson, basePersons, baseOps, people);
+        const key = [baseRel, basePerson.sex].join('|');
+        if (baseSpouseMap.has(key)) return baseSpouseMap.get(key);
+        const spouseWithPrefix = getSpouseWithPrefix(baseRel, basePerson.sex);
+        if (spouseWithPrefix) return spouseWithPrefix;
+        const diff = compareBirth(start, basePerson);
+        if ((baseRel === "兄弟" || baseRel === "弟" || baseRel === "兄") && basePerson.sex === '男') {
+            const prefix = baseRel.length>2 ? baseRel.slice(0,-2) : "";
+            if (diff < 0) return "姻" + prefix + "嫂";
+            else if (diff > 0) return "姻" + prefix + "弟媳";
+            else return "姻" + prefix + "兄弟媳";
+        }
+        if ((baseRel === "姐妹" || baseRel === "姐" || baseRel === "妹") && basePerson.sex === '女') {
+            const prefix = baseRel.length>2 ? baseRel.slice(0,-2) : "";
+            if (diff < 0) return "姻" + prefix + "姐夫";
+            else if (diff > 0) return "姻" + prefix + "妹夫";
+            else return "姻" + prefix + "姐妹夫";
+        }
+        if (baseRel.endsWith("父")) return "姻" + baseRel.slice(0,-1) + "母";
+        if (baseRel.endsWith("母")) return "姻" + baseRel.slice(0,-1) + "父";
+        if (baseRel.endsWith("兄")) return "姻" + baseRel.slice(0,-1) + "嫂";
+        if (baseRel.endsWith("弟")) return "姻" + baseRel.slice(0,-1) + "媳";
+        if (baseRel.endsWith("姐")) return "姻" + baseRel.slice(0,-1) + "夫";
+        if (baseRel.endsWith("妹")) return "姻" + baseRel.slice(0,-1) + "夫";
+        if (baseRel.endsWith("子")) return "姻" + baseRel.slice(0,-1) + "媳";
+        if (baseRel.endsWith("女")) {
+            if (baseRel.includes("侄")) return "侄女婿";
+            if (baseRel.includes("外甥")) return "外甥女婿";
+            return baseRel + "婿";
+        }
+        return "姻" + baseRel + "的配偶";
+    }
+    if (spCount >= 2) {
+        const baseOps = ops.filter(op => op !== 'sp');
+        const basePersons = pathPersons.filter((_,idx) => ops[idx] !== 'sp');
+        const baseRel = getRelationship(start, target, basePersons, baseOps, people);
+        return "姻亲的" + baseRel;
+    }
+    if (upSteps === downSteps) {
+        const k = upSteps;
+        if (k === 1) {
+            const diff = compareBirth(start, target);
+            if (target.sex === '男') return diff < 0 ? "兄" : (diff > 0 ? "弟" : "兄弟");
+            else return diff < 0 ? "姐" : (diff > 0 ? "妹" : "姐妹");
+        } else {
+            let prefix = "";
+            if (k > 1 && pathPersons.length > k) {
+                const connector = pathPersons[k];
+                const first = ops[0];
+                if (first === 'f') prefix = (connector.sex === '女') ? "姑表" : "堂";
+                else if (first === 'm') prefix = (connector.sex === '男') ? "舅表" : "姨表";
+            }
+            const diff = compareBirth(start, target);
+            let suffix = "";
+            if (target.sex === '男') suffix = diff < 0 ? "兄" : (diff > 0 ? "弟" : "兄弟");
+            else suffix = diff < 0 ? "姐" : (diff > 0 ? "妹" : "姐妹");
+            return prefix + suffix;
+        }
+    }
+    if (!ops.includes('sp')) {
+        const diff = upSteps - downSteps;
+        const level = Math.min(upSteps, downSteps);
+        let prefix = "";
+        if (level >= 1 && pathPersons.length > level) {
+            const connector = pathPersons[level];
+            const first = ops[0];
+            if (first === 'f') prefix = (connector.sex === '女') ? "姑表" : "堂";
+            else if (first === 'm') prefix = (connector.sex === '男') ? "舅表" : "姨表";
+        }
+        let mod = "";
+        if (level === 1) mod = "";
+        else if (level === 2) mod = "堂";
+        else if (level === 3) mod = "再从";
+        else if (level === 4) mod = "族";
+        else mod = "远";
+        if (prefix) mod = "";
+        if (diff > 0) {
+            const absDiff = diff;
+            let base = "";
+            if (absDiff === 1) base = (ops[0]==='f') ? (target.sex==='男'?"伯叔":"姑") : (target.sex==='男'?"舅":"姨");
+            else if (absDiff === 2) base = target.sex==='男'?"祖父":"祖母";
+            else if (absDiff === 3) base = target.sex==='男'?"曾祖父":"曾祖母";
+            else if (absDiff === 4) base = target.sex==='男'?"高祖父":"高祖母";
+            else base = `${absDiff}辈长辈` + (target.sex==='男'?"男":"女");
+            return prefix + mod + base;
+        } else if (diff < 0) {
+            const absDiff = -diff;
+            const keyPerson = pathPersons[pathPersons.length-2] || null;
+            const siblingSex = keyPerson ? keyPerson.sex : (ops[0]==='f'?'男':'女');
+            let base = "";
+            if (absDiff === 1) base = (siblingSex==='男'?"侄":"甥") + (target.sex==='男'?"子":"女");
+            else if (absDiff === 2) base = (siblingSex==='男'?"侄孙":"甥孙") + (target.sex==='男'?"":"女");
+            else if (absDiff === 3) base = (siblingSex==='男'?"侄曾孙":"甥曾孙") + (target.sex==='男'?"":"女");
+            else if (absDiff === 4) base = (siblingSex==='男'?"侄玄孙":"甥玄孙") + (target.sex==='男'?"":"女");
+            else base = `${absDiff}辈晚辈` + (target.sex==='男'?"男":"女");
+            return prefix + mod + base;
+        } else {
+            const base = target.sex==='男'?"兄弟":"姐妹";
+            return prefix + mod + base;
+        }
+    }
+    if (spCount === 1) {
+        const baseOps = ops.filter(op => op !== 'sp');
+        const basePersons = pathPersons.filter((_,idx) => ops[idx] !== 'sp');
+        const baseRel = getRelationship(start, target, basePersons, baseOps, people);
+        return "姻" + baseRel;
+    }
+    return "未知关系";
 }
 function printRelationshipsWithClick(startName, relations, people) {
     const byGap = new Map();
@@ -339,6 +509,7 @@ function printRelationshipsWithClick(startName, relations, people) {
         byGap.get(gap).push({ name, pathPersons: info.pathPersons, pathOps: info.pathOps, person: info.person });
     }
     const sortedGaps = Array.from(byGap.keys()).sort((a,b) => b - a);
+    const printedSpousesGlobal = new Set();
     const lines = [];
     const makeClickable = (name) => `<span class="clickable-name" data-name="${escapeHtml(name)}">${escapeHtml(name)}</span>`;
     for (const gap of sortedGaps) {
@@ -346,38 +517,166 @@ function printRelationshipsWithClick(startName, relations, people) {
         if (gap > 0) lines.push(`\n上${gap}辈 ————————————————————————————`);
         else if (gap === 0) lines.push(`\n同辈 ————————————————————————————`);
         else lines.push(`\n下${-gap}辈 ————————————————————————————`);
+        const groups = { f: [], m: [], sp: [], ch: [] };
         for (const item of items) {
-            const obj = item.person;
-            const rel = getSimpleRelationship(people[startName], obj, item.pathPersons, item.pathOps);
-            let line = `  ${rel} ${makeClickable(obj.name)}`;
-            if (obj.spouse && obj.spouse.length) {
-                const spouseObjs = obj.spouse.map(sn => people[sn]).filter(s => s);
-                if (spouseObjs.length) line += ` 配 ${spouseObjs.map(sp => makeClickable(sp.name)).join('、')}`;
+            const first = item.pathOps[0] || '';
+            if (groups[first]) groups[first].push(item);
+            else groups['f'].push(item);
+        }
+        const sectionOrder = ['f','m','sp','ch'];
+        const sectionTitle = { f:'【父系亲属】', m:'【母系亲属】', sp:'【配偶亲属】', ch:'【子女亲属】' };
+        for (const first of sectionOrder) {
+            if (!groups[first] || groups[first].length===0) continue;
+            lines.push(sectionTitle[first]);
+            if (Math.abs(gap) >= 5) {
+                for (const item of groups[first]) {
+                    const obj = item.person;
+                    if (printedSpousesGlobal.has(obj.name)) continue;
+                    const rel = getRelationship(people[startName], obj, item.pathPersons, item.pathOps, people);
+                    let line = `  ${rel} ${makeClickable(obj.name)}`;
+                    if (obj.spouse && obj.spouse.length) {
+                        const spouseObjs = obj.spouse.map(sn => people[sn]).filter(s => s);
+                        if (spouseObjs.length) line += ` 配 ${spouseObjs.map(sp => makeClickable(sp.name)).join('、')}`;
+                    }
+                    lines.push(line);
+                }
+                continue;
             }
-            lines.push(line);
+            const bloodNames = new Set();
+            const bloodSpouses = new Set();
+            if (first === 'f' || first === 'm' || first === 'ch') {
+                for (const item of groups[first]) if (!item.pathOps.includes('sp')) bloodNames.add(item.person.name);
+                for (const item of groups[first]) if (bloodNames.has(item.person.name)) for (const sname of item.person.spouse) if (item.person.sex === '男') bloodSpouses.add(sname);
+            }
+            const families = new Map();
+            for (const item of groups[first]) {
+                if ((first==='f'||first==='m'||first==='ch') && (item.pathOps.includes('sp') || bloodSpouses.has(item.person.name))) continue;
+                const fName = item.person.father || "?";
+                const mName = item.person.mother || "?";
+                const key = `${fName}|${mName}`;
+                if (!families.has(key)) families.set(key, []);
+                families.get(key).push(item);
+            }
+            for (const [famKey, members] of families.entries()) {
+                members.sort((a,b) => (a.person.birthYear ?? 9999) - (b.person.birthYear ?? 9999));
+                const [fName, mName] = famKey.split('|');
+                if (fName !== "?" || mName !== "?") lines.push(`  家庭 ${makeClickable(fName)} & ${makeClickable(mName)}`);
+                else lines.push(`  家庭 ？ & ？`);
+                for (const item of members) {
+                    const obj = item.person;
+                    if (printedSpousesGlobal.has(obj.name)) continue;
+                    const rel = getRelationship(people[startName], obj, item.pathPersons, item.pathOps, people);
+                    let line = `    ${rel} ${makeClickable(obj.name)}`;
+                    if (obj.spouse && obj.spouse.length) {
+                        const spouseObjs = obj.spouse.map(sn => people[sn]).filter(s => s);
+                        if (spouseObjs.length) line += ` 配 ${spouseObjs.map(sp => makeClickable(sp.name)).join('、')}`;
+                    }
+                    lines.push(line);
+                    for (const spName of obj.spouse) {
+                        const spouseObj = people[spName];
+                        if (!spouseObj || printedSpousesGlobal.has(spouseObj.name)) continue;
+                        if (!spouseObj.fatherObj && !spouseObj.motherObj) {
+                            const spousePathPersons = [...item.pathPersons, spouseObj];
+                            const spouseOps = [...item.pathOps, 'sp'];
+                            const spouseRel = getRelationship(people[startName], spouseObj, spousePathPersons, spouseOps, people);
+                            lines.push(`    ${spouseRel} ${makeClickable(spouseObj.name)}`);
+                            printedSpousesGlobal.add(spouseObj.name);
+                        }
+                    }
+                }
+                lines.push("");
+            }
         }
     }
     return lines.join('\n');
 }
 
-// ===================== 多媒体 =====================
+// --------------------- 判断运行环境 ---------------------
+const isOnline = window.location.protocol === 'https:';
+const GITHUB_BASE = 'https://fengzd45.github.io/codex1/%E8%B5%84%E6%96%99/';
+
+// --------------------- 全局变量 ---------------------
+let folderHandle = null;
+let manifestCache = null;
+let peopleData = null;
+let dataLoaded = false;
+let _fromStatModal = false;   // 标记是否从统计弹窗打开的多媒体
+
+// --------------------- DOM 引用 ---------------------
+const folderStatusSpan = document.getElementById('folderStatus');
+const outputPre = document.getElementById('output');
+const modalMedia = document.getElementById('mediaModal');
+const modalTitle = document.getElementById('modalTitle');
+const modalBody = document.getElementById('modalBody');
+const closeModalBtn = document.getElementById('closeModalBtn');
+const selectFolderBtn = document.getElementById('selectFolderBtn');
+const statModal = document.getElementById('statModal');
+
+// --------------------- 多媒体弹窗关闭（增强：如果来自统计弹窗，则恢复统计弹窗） ---------------------
+function closeModal() {
+    modalMedia.classList.remove('active');
+    if (_fromStatModal) {
+        statModal.classList.add('active');
+        _fromStatModal = false;
+    }
+}
+function openModal() { modalMedia.classList.add('active'); }
+closeModalBtn.onclick = closeModal;
+modalMedia.addEventListener('click', (e) => {
+    if (e.target === modalMedia) closeModal();
+});
+
+// --------------------- 统计弹窗关闭 ---------------------
+document.getElementById('closeStatModalBtn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    statModal.classList.remove('active');
+    _fromStatModal = false;
+});
+statModal.addEventListener('click', function(e) {
+    if (e.target === statModal) {
+        statModal.classList.remove('active');
+        _fromStatModal = false;
+    }
+});
+
+// --------------------- loadManifest / listOnlineFiles / preview 等 ---------------------
 async function loadManifest() {
     if (manifestCache) return manifestCache;
     try {
         const resp = await fetch('https://fengzd45.github.io/codex1/manifest.json');
         if (resp.ok) {
             manifestCache = await resp.json();
+            console.log('✅ 清单加载成功', manifestCache);
             return manifestCache;
+        } else {
+            console.warn('清单文件不存在，将使用回退模式');
         }
-    } catch(e) {}
+    } catch(e) {
+        console.warn('清单加载失败', e);
+    }
     return null;
 }
 async function listOnlineFiles(personName) {
     const manifest = await loadManifest();
     if (manifest && manifest[personName]) {
-        return manifest[personName].map(fname => ({ name: fname, url: `${GITHUB_BASE}${encodeURIComponent(personName)}/${encodeURIComponent(fname)}` }));
+        const fileNames = manifest[personName];
+        const files = [];
+        for (const fname of fileNames) {
+            const url = `${GITHUB_BASE}${encodeURIComponent(personName)}/${encodeURIComponent(fname)}`;
+            files.push({ name: fname, url: url });
+        }
+        return files;
     }
-    return [];
+    const candidates = [`${personName}.jpg`, `${personName}.jpeg`, `${personName}.png`, `${personName}.gif`, `${personName}.txt`, `${personName}.md`];
+    const found = [];
+    for (const fname of candidates) {
+        const url = `${GITHUB_BASE}${encodeURIComponent(personName)}/${encodeURIComponent(fname)}`;
+        try {
+            const resp = await fetch(url, { method: 'HEAD' });
+            if (resp.ok) found.push({ name: fname, url: url });
+        } catch(e) {}
+    }
+    return found;
 }
 async function previewOnlineFile(url, fileName) {
     const ext = fileName.split('.').pop().toLowerCase();
@@ -391,8 +690,8 @@ async function previewOnlineFile(url, fileName) {
         try {
             const resp = await fetch(url);
             let text = await resp.text();
-            let linkified = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
-            return `<div class="preview-text">${linkified}</div><br><a href="${url}" download>下载文件</a>`;
+            let linkified = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#8b5a2b;text-decoration:underline;">$1</a>');
+            return `<div class="preview-text" style="white-space:pre-wrap;background:#f8f9fa;padding:12px;border-radius:12px;">${linkified}</div><br><a href="${url}" download>下载文件</a>`;
         } catch(e) {
             return `<a href="${url}" download>下载 ${fileName}</a>`;
         }
@@ -413,8 +712,8 @@ async function previewLocalFile(file, fileName) {
     } else if (ext === 'txt') {
         try {
             let text = await file.text();
-            let linkified = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>');
-            html = `<div class="preview-text">${linkified}</div><br><a href="${url}" download>下载文件</a>`;
+            let linkified = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#8b5a2b;text-decoration:underline;">$1</a>');
+            html = `<div class="preview-text" style="white-space:pre-wrap;background:#f8f9fa;padding:12px;border-radius:12px;">${linkified}</div><br><a href="${url}" download>下载文件</a>`;
         } catch(e) {
             html = `<a href="${url}" download>下载 ${fileName}</a>`;
         }
@@ -425,17 +724,7 @@ async function previewLocalFile(file, fileName) {
     return html;
 }
 
-const folderStatusSpan = document.getElementById('folderStatus');
-const outputPre = document.getElementById('output');
-const modalMedia = document.getElementById('mediaModal');
-const modalTitle = document.getElementById('modalTitle');
-const modalBody = document.getElementById('modalBody');
-const closeModalBtn = document.getElementById('closeModalBtn');
-const selectFolderBtn = document.getElementById('selectFolderBtn');
-const statModal = document.getElementById('statModal');
-const statBody = document.getElementById('statModalBody');
-
-// ===================== 授权 =====================
+// --------------------- 授权文件夹 ---------------------
 selectFolderBtn.onclick = async () => {
     if (isOnline) {
         folderStatusSpan.innerHTML = `🌐 线上模式：资料自动从 GitHub 加载，无需授权。`;
@@ -444,11 +733,11 @@ selectFolderBtn.onclick = async () => {
     }
     try {
         folderStatusSpan.innerHTML = '📂 请在弹窗中选择包含 family_data.jsonl 和「资料」文件夹的目录';
-        rootHandle = await window.showDirectoryPicker();
+        const rootHandle = await window.showDirectoryPicker();
+        window.rootHandle = rootHandle;
         let foundJsonl = false;
         let foundData = false;
         let jsonlContent = '';
-
         try {
             const fileHandle = await rootHandle.getFileHandle('family_data.jsonl');
             const file = await fileHandle.getFile();
@@ -459,20 +748,7 @@ selectFolderBtn.onclick = async () => {
                 dataLoaded = true;
                 foundJsonl = true;
             }
-        } catch (e) {
-            console.warn('读取 family_data.jsonl 失败:', e);
-        }
-
-        try {
-            const fileHandle = await rootHandle.getFileHandle('manifest.json');
-            const file = await fileHandle.getFile();
-            const text = await file.text();
-            manifestCache = JSON.parse(text);
-            console.log('✅ 找到 manifest.json');
-        } catch (e) {
-            console.log('📭 根目录下没有 manifest.json');
-        }
-
+        } catch (e) { console.warn('读取 family_data.jsonl 失败:', e); }
         let foundFolder = null;
         for await (const entry of rootHandle.values()) {
             if (entry.kind === 'directory' && entry.name === '资料') {
@@ -484,17 +760,13 @@ selectFolderBtn.onclick = async () => {
             folderHandle = foundFolder;
             foundData = true;
         }
-
         if (foundJsonl && foundData) {
             folderStatusSpan.innerHTML = `✅ 成功加载 family_data.jsonl（${Object.keys(peopleData).length} 人）并授权「资料」文件夹。`;
             folderStatusSpan.style.color = '#2c5a2c';
             enableUI();
             outputPre.innerHTML = `<pre>✅ 家谱数据已加载！共 ${Object.keys(peopleData).length} 位人物。<br>已授权「资料」文件夹，点击姓名可查看多媒体资料。</pre>`;
             if (peopleData['冯宗德']) document.getElementById('startName').value = '冯宗德';
-            else {
-                const first = Object.keys(peopleData)[0] || '';
-                document.getElementById('startName').value = first;
-            }
+            else { const first = Object.keys(peopleData)[0] || ''; document.getElementById('startName').value = first; }
         } else if (foundJsonl && !foundData) {
             folderStatusSpan.innerHTML = `✅ 加载 family_data.jsonl 成功（${Object.keys(peopleData).length} 人），但未找到「资料」文件夹。`;
             folderStatusSpan.style.color = '#c00';
@@ -511,11 +783,11 @@ selectFolderBtn.onclick = async () => {
     }
 };
 
-// ===================== 显示多媒体（懒加载优化版） =====================
+// --------------------- 核心修改：showPersonMediaInModal（本地模式按需加载） ---------------------
 async function showPersonMediaInModal(personName) {
     modalTitle.innerHTML = `📁 ${escapeHtml(personName)} 的资料`;
     modalBody.innerHTML = `<div class="empty-media-modal">⏳ 正在加载 ${escapeHtml(personName)} 的资料...</div>`;
-    modalMedia.classList.add('active');
+    openModal();
 
     if (isOnline) {
         const files = await listOnlineFiles(personName);
@@ -541,114 +813,68 @@ async function showPersonMediaInModal(personName) {
         return;
     }
 
-    if (!folderHandle && !rootHandle) {
+    if (!folderHandle) {
         modalBody.innerHTML = `<div class="empty-media-modal">⚠️ 请先点击「加载资料库」按钮，授权「资料」文件夹</div>`;
         return;
     }
 
-    let targetDir = null;
-    if (folderHandle) {
-        try {
-            targetDir = await folderHandle.getDirectoryHandle(personName);
-        } catch (e) {
-            if (rootHandle) {
-                try {
-                    const dataDir = await rootHandle.getDirectoryHandle('资料');
-                    targetDir = await dataDir.getDirectoryHandle(personName);
-                } catch (e2) {}
-            }
-        }
-    } else if (rootHandle) {
-        try {
-            const dataDir = await rootHandle.getDirectoryHandle('资料');
-            targetDir = await dataDir.getDirectoryHandle(personName);
-        } catch (e) {}
-    }
-
-    if (!targetDir) {
-        modalBody.innerHTML = `<div class="empty-media-modal">❌ 找不到“${escapeHtml(personName)}”的资料文件夹。</div>`;
-        return;
-    }
-
-    // 关键优化1：从 manifest 获取文件名（不读取文件内容）
-    let fileNames = [];
-    if (manifestCache && manifestCache[personName]) {
-        fileNames = manifestCache[personName];
-    } else {
-        const manifest = await loadLocalManifest();
-        if (manifest && manifest[personName]) {
-            fileNames = manifest[personName];
-            manifestCache = manifest;
-        }
-    }
-
-    if (fileNames.length === 0) {
-        // 降级：遍历获取文件名（不读取内容）
-        for await (const entry of targetDir.values()) {
+    try {
+        const personDir = await folderHandle.getDirectoryHandle(personName);
+        const localFiles = [];
+        // ★ 只获取句柄，不读取文件内容
+        for await (const entry of personDir.values()) {
             if (entry.kind === 'file') {
-                fileNames.push(entry.name);
+                localFiles.push({ name: entry.name, handle: entry });
             }
         }
-    }
-
-    if (fileNames.length === 0) {
-        modalBody.innerHTML = `<div class="empty-media-modal">📭 该人物暂无本地资料文件。</div>`;
-        return;
-    }
-
-    // 关键优化2：只显示文件名列表，不读取文件内容
-    fileNames.sort((a,b) => a.localeCompare(b));
-    let listHtml = `<div class="file-list-modal">`;
-    for (const fname of fileNames) {
-        const ext = fname.split('.').pop().toLowerCase();
-        const icon = ['jpg','jpeg','png','gif','webp'].includes(ext) ? '🖼️' :
-                     ['mp4','webm','avi','mov'].includes(ext) ? '🎬' :
-                     ['mp3','wav','flac'].includes(ext) ? '🎵' : '📄';
-        listHtml += `<div class="file-item-modal" data-filename="${escapeHtml(fname)}"><span class="file-icon-modal">${icon}</span><span class="file-name-modal">${escapeHtml(fname)}</span></div>`;
-    }
-    listHtml += `</div><div id="localPreviewArea" class="media-preview-modal"><div class="empty-media-modal">点击上方文件预览</div></div>`;
-    modalBody.innerHTML = listHtml;
-
-    const previewDiv = document.getElementById('localPreviewArea');
-    document.querySelectorAll('.file-item-modal').forEach(el => {
-        const fname = el.getAttribute('data-filename');
-        el.onclick = async () => {
-            if (previewDiv) {
-                previewDiv.innerHTML = '<div class="empty-media-modal">⏳ 加载中...</div>';
-                try {
-                    const fileHandle = await targetDir.getFileHandle(fname);
-                    const file = await fileHandle.getFile();
-                    previewDiv.innerHTML = await previewLocalFile(file, fname);
-                } catch (e) {
-                    previewDiv.innerHTML = `<div class="empty-media-modal">❌ 读取失败: ${e.message}</div>`;
-                }
-            }
-        };
-    });
-
-    // 自动预览第一个文件
-    if (fileNames[0] && previewDiv) {
-        try {
-            const fileHandle = await targetDir.getFileHandle(fileNames[0]);
-            const file = await fileHandle.getFile();
-            previewDiv.innerHTML = await previewLocalFile(file, fileNames[0]);
-        } catch (e) {
-            previewDiv.innerHTML = `<div class="empty-media-modal">点击文件预览</div>`;
+        if (localFiles.length === 0) {
+            modalBody.innerHTML = `<div class="empty-media-modal">📭 该人物暂无本地资料文件。</div>`;
+            return;
         }
+        localFiles.sort((a,b) => a.name.localeCompare(b.name));
+
+        let listHtml = `<div class="file-list-modal">`;
+        for (const f of localFiles) {
+            listHtml += `<div class="file-item-modal" data-filename="${escapeHtml(f.name)}"><span class="file-icon-modal">📄</span><span class="file-name-modal">${escapeHtml(f.name)}</span></div>`;
+        }
+        listHtml += `</div><div id="localPreviewArea" class="media-preview-modal"><div class="empty-media-modal">点击上方文件预览</div></div>`;
+        modalBody.innerHTML = listHtml;
+        const previewDiv = document.getElementById('localPreviewArea');
+
+        document.querySelectorAll('.file-item-modal').forEach(el => {
+            const fname = el.getAttribute('data-filename');
+            const fileObj = localFiles.find(f => f.name === fname);
+            if (fileObj) {
+                el.onclick = async () => {
+                    if (previewDiv) {
+                        previewDiv.innerHTML = '<div class="empty-media-modal">⏳ 加载中...</div>';
+                        try {
+                            const file = await fileObj.handle.getFile();
+                            previewDiv.innerHTML = await previewLocalFile(file, fileObj.name);
+                        } catch (e) {
+                            previewDiv.innerHTML = `<div class="empty-media-modal">❌ 读取失败</div>`;
+                        }
+                    }
+                };
+            }
+        });
+
+        // 默认预览第一个文件
+        if (localFiles[0] && previewDiv) {
+            try {
+                const file = await localFiles[0].handle.getFile();
+                previewDiv.innerHTML = await previewLocalFile(file, localFiles[0].name);
+            } catch (e) {
+                previewDiv.innerHTML = `<div class="empty-media-modal">⚠️ 无法预览默认文件</div>`;
+            }
+        }
+    } catch (err) {
+        console.error(err);
+        modalBody.innerHTML = `<div class="empty-media-modal">❌ 找不到“${escapeHtml(personName)}”文件夹。</div>`;
     }
 }
 
-// ===================== 关闭逻辑 =====================
-closeModalBtn.onclick = function() {
-    modalMedia.classList.remove('active');
-};
-modalMedia.addEventListener('click', (e) => {
-    if (e.target === modalMedia) {
-        modalMedia.classList.remove('active');
-    }
-});
-
-// ===================== 图形树 =====================
+// --------------------- 可交互图形树 ---------------------
 let treeState = {
     canvas: null, ctx: null, rootName: "", baseNodes: new Set(), dynamicNodes: new Set(),
     expanded: new Set(), offsetX: 0, offsetY: 0, scale: 0.8, nodesList: []
@@ -675,17 +901,24 @@ function buildBaseSet(rootPerson) {
             nodes.add(spouse.name);
             if (spouse.fatherObj) nodes.add(spouse.fatherObj.name);
             if (spouse.motherObj) nodes.add(spouse.motherObj.name);
+            if (spouse.fatherObj?.fatherObj) nodes.add(spouse.fatherObj.fatherObj.name);
+            if (spouse.fatherObj?.motherObj) nodes.add(spouse.fatherObj.motherObj.name);
+            if (spouse.motherObj?.fatherObj) nodes.add(spouse.motherObj.fatherObj.name);
+            if (spouse.motherObj?.motherObj) nodes.add(spouse.motherObj.motherObj.name);
         }
     }
     for (const child of rootPerson.children) {
         for (const sp of child.spouse) {
             const spouse = peopleData[sp];
-            if (spouse) { nodes.add(sp); }
+            if (spouse) {
+                nodes.add(sp);
+                if (spouse.fatherObj) nodes.add(spouse.fatherObj.name);
+                if (spouse.motherObj) nodes.add(spouse.motherObj.name);
+            }
         }
     }
     return nodes;
 }
-
 function toggleNode(nodeName) {
     const node = peopleData[nodeName];
     if (!node || node.children.length === 0) return false;
@@ -709,7 +942,6 @@ function toggleNode(nodeName) {
     renderTree();
     return true;
 }
-
 function renderTree() {
     if (!treeState.canvas || !treeState.ctx) return;
     const ctx = treeState.ctx;
@@ -863,7 +1095,6 @@ function renderTree() {
     }
     ctx.restore();
 }
-
 function initTree(rootName) {
     treeState.rootName = rootName;
     const rootPerson = peopleData[rootName];
@@ -887,7 +1118,6 @@ function initTree(rootName) {
         renderTree();
     }, 120);
 }
-
 function bindGestures() {
     const canvas = document.getElementById('treeCanvas');
     if (!canvas) return;
@@ -969,241 +1199,12 @@ function bindGestures() {
         }
     });
 }
-
 function showTreeModal(rootName) {
     initTree(rootName);
     bindGestures();
 }
 
-// ===================== 资料统计 =====================
-async function loadLocalManifest() {
-    if (!rootHandle) return null;
-    try {
-        const fileHandle = await rootHandle.getFileHandle('manifest.json');
-        const file = await fileHandle.getFile();
-        const text = await file.text();
-        return JSON.parse(text);
-    } catch (e) {
-        return null;
-    }
-}
-
-/**
- * 生成 manifest.json（遍历「资料」文件夹）
- */
-async function buildManifest() {
-    if (!rootHandle) return null;
-    const manifest = {};
-    try {
-        // 查找「资料」文件夹
-        let dataDir = null;
-        for await (const entry of rootHandle.values()) {
-            if (entry.kind === 'directory' && entry.name === '资料') {
-                dataDir = entry;
-                break;
-            }
-        }
-        if (!dataDir) return null;
-
-        // 遍历「资料」文件夹下的所有人名子文件夹
-        for await (const entry of dataDir.values()) {
-            if (entry.kind === 'directory') {
-                const personName = entry.name;
-                const files = [];
-                try {
-                    const personDir = await dataDir.getDirectoryHandle(personName);
-                    for await (const fileEntry of personDir.values()) {
-                        if (fileEntry.kind === 'file') {
-                            files.push(fileEntry.name);
-                        }
-                    }
-                    if (files.length > 0) {
-                        manifest[personName] = files;
-                    }
-                } catch (e) {
-                    // 跳过无法读取的目录
-                }
-            }
-        }
-    } catch (e) {
-        console.warn('生成 manifest 失败:', e);
-        return null;
-    }
-    return manifest;
-}
-
-/**
- * 保存 manifest.json 到根目录
- */
-async function saveManifest(manifest) {
-    if (!rootHandle) return false;
-    try {
-        const json = JSON.stringify(manifest, null, 2);
-        const blob = new Blob([json], { type: 'application/json' });
-        // 使用 File System Access API 保存
-        try {
-            let fileHandle;
-            try {
-                fileHandle = await rootHandle.getFileHandle('manifest.json');
-            } catch (e) {
-                fileHandle = await rootHandle.getFileHandle('manifest.json', { create: true });
-            }
-            const writable = await fileHandle.createWritable();
-            await writable.write(blob);
-            await writable.close();
-            console.log('✅ manifest.json 已保存到根目录');
-            return true;
-        } catch (e) {
-            // 如果 File System Access API 保存失败，降级为下载
-            console.warn('使用 File System API 保存失败，降级为下载:', e);
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'manifest.json';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            return true;
-        }
-    } catch (e) {
-        console.error('保存 manifest.json 失败:', e);
-        return false;
-    }
-}
-
-async function showStatModal() {
-    statBody.innerHTML = '<div class="stat-empty">⏳ 正在统计资料，请稍候...</div>';
-    statModal.classList.add('active');
-
-    try {
-        let stats = [];
-        const names = Object.keys(peopleData || {});
-        if (names.length === 0) {
-            statBody.innerHTML = '<div class="stat-empty">⚠️ 家谱数据未加载，请先加载资料库。</div>';
-            return;
-        }
-
-        if (isOnline) {
-            statBody.innerHTML = '<div class="stat-empty">🌐 线上模式，从 GitHub 加载 manifest...</div>';
-            try {
-                const resp = await fetch('https://fengzd45.github.io/codex1/manifest.json');
-                if (resp.ok) {
-                    const manifest = await resp.json();
-                    const nameSet = new Set(names);
-                    for (const [name, files] of Object.entries(manifest)) {
-                        if (!nameSet.has(name)) continue;
-                        if (files.length === 0) continue;
-                        let txtCount = 0, imgCount = 0, vidCount = 0;
-                        for (const fname of files) {
-                            const ext = fname.split('.').pop().toLowerCase();
-                            if (['txt', 'md', 'json'].includes(ext)) txtCount++;
-                            else if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) imgCount++;
-                            else if (['mp4','webm','avi','mov','mp3','wav','flac','aac'].includes(ext)) vidCount++;
-                            else txtCount++;
-                        }
-                        stats.push({ name, txt: txtCount, img: imgCount, vid: vidCount, total: files.length });
-                    }
-                } else {
-                    throw new Error('manifest.json 不存在');
-                }
-            } catch (e) {
-                statBody.innerHTML = `<div class="stat-empty">❌ 线上模式需要 manifest.json，请先运行 build_manifest.py 生成并推送。</div>`;
-                return;
-            }
-        } else {
-            // ===== 线下模式 =====
-            if (!rootHandle) {
-                statBody.innerHTML = '<div class="stat-empty">⚠️ 请先点击「加载资料库」授权文件夹。</div>';
-                return;
-            }
-
-            // 尝试读取本地 manifest.json
-            let manifest = await loadLocalManifest();
-            
-            if (!manifest || Object.keys(manifest).length === 0) {
-                // ===== 没有 manifest.json，自动生成 =====
-                statBody.innerHTML = '<div class="stat-empty">📂 未找到 manifest.json，正在自动生成...</div>';
-                
-                manifest = await buildManifest();
-                
-                if (!manifest || Object.keys(manifest).length === 0) {
-                    statBody.innerHTML = '<div class="stat-empty">❌ 未找到任何资料文件。<br>请确保「资料」文件夹下有人物子文件夹。</div>';
-                    return;
-                }
-
-                // 保存 manifest.json
-                const saved = await saveManifest(manifest);
-                if (saved) {
-                    statBody.innerHTML = '<div class="stat-empty">✅ 已自动生成 manifest.json 并保存到根目录。</div>';
-                } else {
-                    statBody.innerHTML = '<div class="stat-empty">⚠️ manifest.json 生成成功，但保存失败。<br>请手动将下载的文件放到根目录。</div>';
-                }
-            }
-
-            // 使用 manifest 统计
-            const nameSet = new Set(names);
-            for (const [name, files] of Object.entries(manifest)) {
-                if (!nameSet.has(name)) continue;
-                if (files.length === 0) continue;
-                let txtCount = 0, imgCount = 0, vidCount = 0;
-                for (const fname of files) {
-                    const ext = fname.split('.').pop().toLowerCase();
-                    if (['txt', 'md', 'json'].includes(ext)) txtCount++;
-                    else if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) imgCount++;
-                    else if (['mp4','webm','avi','mov','mp3','wav','flac','aac'].includes(ext)) vidCount++;
-                    else txtCount++;
-                }
-                stats.push({ name, txt: txtCount, img: imgCount, vid: vidCount, total: files.length });
-            }
-        }
-
-        stats.sort((a,b) => b.total - a.total);
-
-        if (stats.length === 0) {
-            statBody.innerHTML = '<div class="stat-empty">📭 暂未找到任何有资料的人物。</div>';
-            return;
-        }
-
-        let html = `<div class="stat-summary">📊 共 ${stats.length} 位人物有资料，总文件数 ${stats.reduce((s,o) => s + o.total, 0)}</div>`;
-        html += `<table class="stat-table"><thead><tr><th>姓名</th><th class="num">📄 文章</th><th class="num">🖼️ 图片</th><th class="num">🎵 音视频</th><th class="num">📦 合计</th></tr></thead><tbody>`;
-        for (const s of stats) {
-            html += `<tr><td><span class="clickable-name" data-name="${escapeHtml(s.name)}">${escapeHtml(s.name)}</span></td><td class="num">${s.txt}</td><td class="num">${s.img}</td><td class="num">${s.vid}</td><td class="num"><strong>${s.total}</strong></td></tr>`;
-        }
-        html += `</tbody></table>`;
-        statBody.innerHTML = html;
-
-        statBody.querySelectorAll('.clickable-name').forEach(el => {
-            el.onclick = function(e) {
-                e.stopPropagation();
-                e.preventDefault();
-                const name = this.getAttribute('data-name');
-                if (name && peopleData[name]) {
-                    showPersonMediaInModal(name);
-                }
-                return false;
-            };
-        });
-
-    } catch (err) {
-        console.error(err);
-        statBody.innerHTML = `<div class="stat-empty">❌ 统计失败: ${err.message}</div>`;
-    }
-}
-
-// ===================== 统计页关闭 =====================
-document.getElementById('closeStatModalBtn').addEventListener('click', function(e) {
-    e.stopPropagation();
-    statModal.classList.remove('active');
-});
-
-statModal.addEventListener('click', function(e) {
-    if (e.target === statModal) {
-        statModal.classList.remove('active');
-    }
-});
-
-// ===================== 启用 UI =====================
+// --------------------- 启用 UI ---------------------
 function enableUI() {
     document.getElementById('startName').disabled = false;
     document.getElementById('searchBtn').disabled = false;
@@ -1218,7 +1219,7 @@ function enableUI() {
     }
 }
 
-// ===================== 事件绑定 =====================
+// --------------------- 搜索 ---------------------
 function search() {
     const startName = document.getElementById('startName').value.trim();
     if (!startName) { outputPre.innerHTML = '<pre>请输入姓名</pre>'; return; }
@@ -1234,18 +1235,17 @@ function search() {
             const outputText = printRelationshipsWithClick(startName, relations, peopleData);
             outputPre.innerHTML = `<pre>========== 从 ${escapeHtml(startName)} 出发的家族关系树 ==========\n${outputText}</pre>`;
             document.querySelectorAll('.clickable-name').forEach(el => {
-                el.onclick = function(e) {
-                    const name = this.getAttribute('data-name');
+                el.onclick = (e) => {
+                    const name = e.target.getAttribute('data-name');
                     if (name && peopleData[name]) showPersonMediaInModal(name);
                 };
             });
         } catch (error) {
-            console.error("渲染家族树时发生致命错误:", error);
-            outputPre.innerHTML = `<pre>❌ 检测到数据异常，已阻止页面卡死。<br>技术原因：${error.message}</pre>`;
+            console.error("渲染家族树时发生致命错误，已拦截防止卡死:", error);
+            outputPre.innerHTML = `<pre>❌ 检测到数据异常，已阻止页面卡死。<br>请检查 family_data.jsonl 中是否包含“自身互为父子”、“空名字”等逻辑错误。<br><br>技术原因：${error.message}</pre>`;
         }
     }, 50);
 }
-
 document.getElementById('searchBtn').addEventListener('click', search);
 document.getElementById('treeBtn').addEventListener('click', () => {
     let startName = document.getElementById('startName').value.trim();
@@ -1258,7 +1258,6 @@ document.getElementById('treeBtn').addEventListener('click', () => {
     showTreeModal(startName);
 });
 document.getElementById('startName').addEventListener('keypress', (e) => { if (e.key === 'Enter') search(); });
-
 const closeTreeModalBtn = document.getElementById('closeTreeModalBtn');
 closeTreeModalBtn.onclick = () => {
     document.getElementById('treeModal').classList.remove('active');
@@ -1267,21 +1266,12 @@ closeTreeModalBtn.onclick = () => {
 document.getElementById('treeModal').addEventListener('click', (e) => {
     if (e.target === document.getElementById('treeModal')) closeTreeModalBtn.click();
 });
-
-document.getElementById('statBtn').addEventListener('click', showStatModal);
-
 const toTopBtn = document.getElementById('toTopBtn');
 window.addEventListener('scroll', () => { toTopBtn.style.display = window.scrollY > 300 ? 'flex' : 'none'; });
 toTopBtn.addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); });
 
-// ===================== 自动加载 =====================
+// --------------------- 自动加载 ---------------------
 async function tryAutoLoad() {
-    if (window.location.protocol === 'file:') {
-        folderStatusSpan.innerHTML = `📁 请点击「加载资料库」选择包含 family_data.jsonl 的文件夹。`;
-        folderStatusSpan.style.color = '#8b5a2b';
-        outputPre.innerHTML = `<pre>⏳ 请点击上方「加载资料库」按钮，选择包含 family_data.jsonl 及「资料」子文件夹的目录。</pre>`;
-        return;
-    }
     if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
         try {
             const resp = await fetch('family_data.jsonl');
@@ -1323,6 +1313,228 @@ if (isOnline) {
 } else {
     tryAutoLoad();
 }
+
+// --------------------- 资料统计功能（含线下直接读取 manifest.json） ---------------------
+async function loadLocalManifest() {
+    if (!window.rootHandle) return null;
+    try {
+        const fileHandle = await window.rootHandle.getFileHandle('manifest.json');
+        const file = await fileHandle.getFile();
+        const text = await file.text();
+        return JSON.parse(text);
+    } catch (e) {
+        return null;
+    }
+}
+async function buildManifest() {
+    if (!window.rootHandle) return null;
+    const manifest = {};
+    try {
+        let dataDir = null;
+        for await (const entry of window.rootHandle.values()) {
+            if (entry.kind === 'directory' && entry.name === '资料') {
+                dataDir = entry;
+                break;
+            }
+        }
+        if (!dataDir) return null;
+        for await (const entry of dataDir.values()) {
+            if (entry.kind === 'directory') {
+                const personName = entry.name;
+                const files = [];
+                try {
+                    const personDir = await dataDir.getDirectoryHandle(personName);
+                    for await (const fileEntry of personDir.values()) {
+                        if (fileEntry.kind === 'file') {
+                            files.push(fileEntry.name);
+                        }
+                    }
+                    if (files.length > 0) {
+                        manifest[personName] = files;
+                    }
+                } catch (e) {}
+            }
+        }
+    } catch (e) {
+        console.warn('生成 manifest 失败:', e);
+        return null;
+    }
+    return manifest;
+}
+async function saveManifest(manifest) {
+    if (!window.rootHandle) return false;
+    try {
+        const json = JSON.stringify(manifest, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        try {
+            let fileHandle;
+            try {
+                fileHandle = await window.rootHandle.getFileHandle('manifest.json');
+            } catch (e) {
+                fileHandle = await window.rootHandle.getFileHandle('manifest.json', { create: true });
+            }
+            const writable = await fileHandle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            console.log('✅ manifest.json 已保存到根目录');
+            return true;
+        } catch (e) {
+            console.warn('使用 File System API 保存失败，降级为下载:', e);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'manifest.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            return true;
+        }
+    } catch (e) {
+        console.error('保存 manifest.json 失败:', e);
+        return false;
+    }
+}
+
+async function showStatModal() {
+    const statBody = document.getElementById('statModalBody');
+    statBody.innerHTML = '<div class="stat-empty">⏳ 正在统计资料，请稍候...</div>';
+    statModal.classList.add('active');
+
+    try {
+        let stats = [];
+        const names = Object.keys(peopleData || {});
+        if (names.length === 0) {
+            statBody.innerHTML = '<div class="stat-empty">⚠️ 家谱数据未加载，请先加载资料库。</div>';
+            return;
+        }
+
+        // ----- 线上模式 -----
+        if (isOnline) {
+            statBody.innerHTML = '<div class="stat-empty">🌐 线上模式，从 GitHub 加载 manifest...</div>';
+            try {
+                const resp = await fetch('https://fengzd45.github.io/codex1/manifest.json');
+                if (resp.ok) {
+                    const manifest = await resp.json();
+                    const nameSet = new Set(names);
+                    for (const [name, files] of Object.entries(manifest)) {
+                        if (!nameSet.has(name)) continue;
+                        if (files.length === 0) continue;
+                        let txtCount = 0, imgCount = 0, vidCount = 0;
+                        for (const fname of files) {
+                            const ext = fname.split('.').pop().toLowerCase();
+                            if (['txt', 'md', 'json'].includes(ext)) txtCount++;
+                            else if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) imgCount++;
+                            else if (['mp4','webm','avi','mov','mp3','wav','flac','aac'].includes(ext)) vidCount++;
+                            else txtCount++;
+                        }
+                        stats.push({ name, txt: txtCount, img: imgCount, vid: vidCount, total: files.length });
+                    }
+                } else {
+                    throw new Error('manifest.json 不存在');
+                }
+            } catch (e) {
+                statBody.innerHTML = `<div class="stat-empty">❌ 线上模式需要 manifest.json，请先运行 build_manifest.py 生成并推送。</div>`;
+                return;
+            }
+        } else {
+            // ----- 本地模式：优先尝试直接读取同目录 manifest.json -----
+            let manifest = null;
+            try {
+                const resp = await fetch('manifest.json');
+                if (resp.ok) {
+                    manifest = await resp.json();
+                    console.log('✅ 本地读取 manifest.json 成功');
+                } else {
+                    console.warn('本地 manifest.json 不存在或无法读取');
+                }
+            } catch (e) {
+                console.warn('本地读取 manifest.json 失败，将尝试授权方式:', e);
+            }
+
+            // 如果直接读取失败，再尝试授权方式
+            if (!manifest || Object.keys(manifest).length === 0) {
+                if (!window.rootHandle) {
+                    statBody.innerHTML = '<div class="stat-empty">⚠️ 请先点击「加载资料库」授权文件夹（需要根目录权限）。</div>';
+                    return;
+                }
+
+                manifest = await loadLocalManifest();
+
+                if (!manifest || Object.keys(manifest).length === 0) {
+                    statBody.innerHTML = '<div class="stat-empty">📂 未找到 manifest.json，正在自动生成...</div>';
+                    manifest = await buildManifest();
+                    if (!manifest || Object.keys(manifest).length === 0) {
+                        statBody.innerHTML = '<div class="stat-empty">❌ 未找到任何资料文件。<br>请确保「资料」文件夹下有人物子文件夹。</div>';
+                        return;
+                    }
+                    const saved = await saveManifest(manifest);
+                    if (saved) {
+                        statBody.innerHTML = '<div class="stat-empty">✅ 已自动生成 manifest.json 并保存到根目录。</div>';
+                    } else {
+                        statBody.innerHTML = '<div class="stat-empty">⚠️ manifest.json 生成成功，但保存失败。<br>请手动将下载的文件放到根目录。</div>';
+                    }
+                }
+            }
+
+            // 使用 manifest 统计
+            const nameSet = new Set(names);
+            for (const [name, files] of Object.entries(manifest)) {
+                if (!nameSet.has(name)) continue;
+                if (files.length === 0) continue;
+                let txtCount = 0, imgCount = 0, vidCount = 0;
+                for (const fname of files) {
+                    const ext = fname.split('.').pop().toLowerCase();
+                    if (['txt', 'md', 'json'].includes(ext)) txtCount++;
+                    else if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) imgCount++;
+                    else if (['mp4','webm','avi','mov','mp3','wav','flac','aac'].includes(ext)) vidCount++;
+                    else txtCount++;
+                }
+                stats.push({ name, txt: txtCount, img: imgCount, vid: vidCount, total: files.length });
+            }
+        }
+
+        stats.sort((a,b) => b.total - a.total);
+
+        if (stats.length === 0) {
+            statBody.innerHTML = '<div class="stat-empty">📭 暂未找到任何有资料的人物。</div>';
+            return;
+        }
+
+        let html = `<div class="stat-summary">📊 共 ${stats.length} 位人物有资料，总文件数 ${stats.reduce((s,o) => s + o.total, 0)}</div>`;
+        html += `<table class="stat-table"><thead><tr><th>姓名</th><th class="num">📄 文章</th><th class="num">🖼️ 图片</th><th class="num">🎵 音视频</th><th class="num">📦 合计</th></tr></thead><tbody>`;
+        for (const s of stats) {
+            html += `<tr><td><span class="clickable-name" data-name="${escapeHtml(s.name)}">${escapeHtml(s.name)}</span></td><td class="num">${s.txt}</td><td class="num">${s.img}</td><td class="num">${s.vid}</td><td class="num"><strong>${s.total}</strong></td></tr>`;
+        }
+        html += `</tbody></table>`;
+        statBody.innerHTML = html;
+
+        // ★★★ 统计弹窗点击姓名：设置标记，关闭统计弹窗，打开多媒体 ★★★
+        statBody.querySelectorAll('.clickable-name').forEach(el => {
+            el.onclick = function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                const name = this.getAttribute('data-name');
+                if (name && peopleData[name]) {
+                    _fromStatModal = true;
+                    statModal.classList.remove('active');
+                    requestAnimationFrame(() => {
+                        setTimeout(() => {
+                            showPersonMediaInModal(name);
+                        }, 50);
+                    });
+                }
+                return false;
+            };
+        });
+
+    } catch (err) {
+        console.error(err);
+        statBody.innerHTML = `<div class="stat-empty">❌ 统计失败: ${err.message}</div>`;
+    }
+}
+
+document.getElementById('statBtn').addEventListener('click', showStatModal);
 
 </script>
 </body>
