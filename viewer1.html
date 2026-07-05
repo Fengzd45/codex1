@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>资料查看器</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f0e8;
+            color: #1e293b;
+            padding: 16px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: #8b5a2b;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .header h1 { margin: 0; font-size: 1.6rem; }
+        .header p { margin: 8px 0 0; opacity: 0.9; font-size: 0.85rem; }
+        .content { padding: 20px; }
+        .folder-select-area {
+            background: #f0e8d8;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .folder-status { font-size: 0.85rem; font-weight: bold; }
+        .folder-btn {
+            background: #8b5a2b;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .folder-btn:disabled { opacity: 0.6; cursor: default; background: #aaa; }
+        .status-bar {
+            background: #faf8f0;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            border: 1px solid #e0d6c0;
+        }
+        .contributor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        .contributor-card {
+            background: white;
+            border-radius: 18px;
+            padding: 18px 10px 14px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            border: 1px solid #eef2f6;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-weight: 500;
+        }
+        .contributor-card:hover {
+            border-color: #b3c9f0;
+            background: #fafcff;
+            transform: translateY(-2px);
+        }
+        .contributor-card .avatar { font-size: 2.2rem; display: block; margin-bottom: 6px; }
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 18px;
+            margin-top: 12px;
+        }
+        .gallery-item {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            border: 1px solid #edf2f7;
+            transition: all 0.15s;
+        }
+        .gallery-item:hover {
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+            border-color: #d0dcee;
+        }
+        .gallery-item img {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            display: block;
+            background: #f0f3f8;
+        }
+        .gallery-item .filename {
+            font-size: 0.75rem;
+            padding: 8px 10px 10px;
+            color: #334155;
+            background: #fafcff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            border-top: 1px solid #f0f4fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .gallery-item .filename .copy-btn {
+            background: transparent;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 0 4px;
+            color: #5f6c80;
+            transition: 0.1s;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .gallery-item .filename .copy-btn:hover { color: #0b1e33; transform: scale(1.08); }
+        .img-placeholder {
+            width: 100%;
+            aspect-ratio: 1/1;
+            background: #f0f3f8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 0.8rem;
+        }
+        .empty-state {
+            background: white;
+            padding: 60px 20px;
+            border-radius: 28px;
+            text-align: center;
+            border: 1px dashed #dce3ed;
+            color: #5d6f86;
+        }
+        .footer {
+            text-align: center;
+            padding: 16px;
+            font-size: 0.7rem;
+            color: #aaa;
+            border-top: 1px solid #eee;
+        }
+        .toast-message {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 8px 22px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            opacity: 0;
+            transition: opacity 0.25s;
+            pointer-events: none;
+            z-index: 999;
+        }
+        .toast-message.show { opacity: 1; }
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            display: flex; align-items: center; justify-content: center;
+            visibility: hidden; opacity: 0;
+            transition: visibility 0.2s, opacity 0.2s;
+            z-index: 1000;
+        }
+        .modal-overlay.active { visibility: visible; opacity: 1; }
+        .modal-container {
+            background: #fffef7; border-radius: 32px; width: 92%; max-width: 600px;
+            max-height: 80vh; display: flex; flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); overflow: hidden;
+        }
+        .modal-header {
+            background: #8b5a2b; color: white; padding: 14px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-shrink: 0;
+        }
+        .modal-header h3 { margin: 0; font-size: 1.2rem; }
+        .modal-close {
+            background: none; border: none; color: white; font-size: 28px;
+            cursor: pointer; width: 32px; height: 32px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 40px;
+        }
+        .modal-close:hover { background: rgba(255,255,255,0.2); }
+        .modal-body { flex: 1; overflow-y: auto; padding: 16px 20px; background: #fefcf5; }
+        .file-list-modal {
+            background: #faf8f0; border-radius: 20px; padding: 8px 0;
+            margin-bottom: 16px; max-height: 260px; overflow-y: auto;
+            border: 1px solid #e0d6c0;
+        }
+        .file-item-modal {
+            display: flex; align-items: center; padding: 10px 16px;
+            border-bottom: 1px solid #e8e0d0; cursor: pointer;
+            transition: background 0.15s;
+        }
+        .file-item-modal:hover { background: #f0e8d8; }
+        .file-name-modal { flex: 1; word-break: break-all; font-size: 0.9rem; }
+        .media-preview-modal {
+            background: white; border-radius: 20px; padding: 16px;
+            margin-top: 8px; border: 1px solid #e0d6c0;
+            max-height: 320px; overflow-y: auto;
+        }
+        .preview-image { max-width: 100%; border-radius: 12px; display: block; margin: 0 auto; }
+        .preview-text {
+            white-space: pre-wrap; font-family: monospace; background: #f8f9fa;
+            padding: 12px; border-radius: 12px; font-size: 0.8rem;
+        }
+        .empty-media-modal { text-align: center; padding: 32px 20px; color: #a0a090; }
+        .download-link {
+            display: inline-block; margin-top: 12px; padding: 6px 14px;
+            background: #8b5a2b; color: white; text-decoration: none;
+            border-radius: 30px; font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>📂 资料查看器</h1>
+        <p>单击姓名查看多媒体资料</p>
+    </div>
+    <div class="content">
+        <div class="folder-select-area">
+            <span class="folder-status" id="folderStatus">📁 请点击「加载资料库」授权文件夹</span>
+            <button class="folder-btn" id="selectFolderBtn">📂 加载资料库</button>
+        </div>
+        <div class="status-bar" id="statusBar">
+            <span>📋 已加载资料清单，<span id="contributorCount">0</span> 位贡献者。</span>
+            <span class="count" id="fileCountDisplay">📎 0 张</span>
+        </div>
+        <div id="contributorContainer" class="contributor-grid"></div>
+        <div id="galleryContainer" class="gallery"></div>
+        <div id="emptyMessage" class="empty-state" style="display:none;">
+            <div style="font-size:2.8rem; margin-bottom:10px;">🖼️</div>
+            <div>暂无资料，请检查 manifest.json</div>
+        </div>
+    </div>
+    <div class="footer">资料查看器 · 点击姓名弹窗查看资料</div>
+</div>
+
+<div id="toastMessage" class="toast-message">✅ 已复制</div>
+
+<div id="mediaModal" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 id="modalTitle">📁 多媒体资料</h3>
+            <button class="modal-close" id="closeModalBtn">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody"><div class="empty-media-modal">加载中...</div></div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// 文件夹名：资料文件夹
+// ============================================================
+
+const isOnline = window.location.protocol === 'https:' || window.location.hostname.includes('github.io');
+const GITHUB_BASE = 'https://fengzd45.github.io/codex1/%E8%B5%84%E6%96%99/';
+const MANIFEST_URL_ONLINE = 'https://fengzd45.github.io/codex1/manifest.json';
+const FOLDER_NAME = '资料文件夹';
+
+// ---- 状态 ----
+let allData = {};
+let currentPerson = null;
+let rootHandle = null;
+let folderHandle = null;
+let manifestCache = null;
+
+// ---- DOM ----
+const folderStatus = document.getElementById('folderStatus');
+const selectFolderBtn = document.getElementById('selectFolderBtn');
+const statusBar = document.getElementById('statusBar');
+const contributorCount = document.getElementById('contributorCount');
+const fileCountDisplay = document.getElementById('fileCountDisplay');
+const contributorContainer = document.getElementById('contributorContainer');
+const galleryContainer = document.getElementById('galleryContainer');
+const emptyMessage = document.getElementById('emptyMessage');
+const modalMedia = document.getElementById('mediaModal');
+const modalTitle = document.getElementById('modalTitle');
+const modalBody = document.getElementById('modalBody');
+const closeModalBtn = document.getElementById('closeModalBtn');
+
+// ---- 工具 ----
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[m]);
+}
+
+function showToast(msg) {
+    const el = document.getElementById('toastMessage');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(window.toastTimer);
+    window.toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => showToast('✅ 已复制')).catch(() => fallbackCopy(text));
+    } else { fallbackCopy(text); }
+}
+function fallbackCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0;left:-9999px;';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); showToast('✅ 已复制'); } catch(e) { showToast('❌ 复制失败'); }
+    document.body.removeChild(ta);
+}
+
+// ---- 多媒体弹窗 ----
+function openModal() { modalMedia.classList.add('active'); }
+function closeModal() { modalMedia.classList.remove('active'); }
+closeModalBtn.onclick = closeModal;
+modalMedia.addEventListener('click', (e) => { if (e.target === modalMedia) closeModal(); });
+
+async function previewOnlineFile(url, fileName) {
+    const ext = fileName.split('.').pop().toLowerCase();
+    if (['jpg','jpeg','png','gif','webp'].includes(ext)) {
+        return `<div><img src="${url}" class="preview-image"><br><a href="${url}" download class="download-link">下载</a></div>`;
+    } else if (['mp4','webm'].includes(ext)) {
+        return `<video controls src="${url}" style="max-width:100%;"></video><br><a href="${url}" download class="download-link">下载</a>`;
+    } else if (['mp3','wav'].includes(ext)) {
+        return `<audio controls src="${url}" style="max-width:100%;"></audio><br><a href="${url}" download class="download-link">下载</a>`;
+    } else if (ext === 'txt' || ext === 'md') {
+        try {
+            const resp = await fetch(url);
+            let text = await resp.text();
+            const linkified = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#8b5a2b;text-decoration:underline;">$1</a>');
+            return `<div class="preview-text">${linkified}</div><br><a href="${url}" download class="download-link">下载</a>`;
+        } catch(e) { return `<a href="${url}" download class="download-link">下载 ${fileName}</a>`; }
+    } else {
+        return `<a href="${url}" download class="download-link">下载 ${fileName}</a>`;
+    }
+}
+
+async function previewLocalFile(file, fileName) {
+    const url = URL.createObjectURL(file);
+    const ext = fileName.split('.').pop().toLowerCase();
+    let html = '';
+    if (['jpg','jpeg','png','gif','webp'].includes(ext)) {
+        html = `<div><img src="${url}" class="preview-image"><br><a href="${url}" download class="download-link">下载</a></div>`;
+    } else if (['mp4','webm'].includes(ext)) {
+        html = `<video controls src="${url}" style="max-width:100%;"></video><br><a href="${url}" download class="download-link">下载</a>`;
+    } else if (['mp3','wav'].includes(ext)) {
+        html = `<audio controls src="${url}" style="max-width:100%;"></audio><br><a href="${url}" download class="download-link">下载</a>`;
+    } else if (ext === 'txt' || ext === 'md') {
+        try {
+            let text = await file.text();
+            const linkified = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#8b5a2b;text-decoration:underline;">$1</a>');
+            html = `<div class="preview-text">${linkified}</div><br><a href="${url}" download class="download-link">下载</a>`;
+        } catch(e) { html = `<a href="${url}" download class="download-link">下载 ${fileName}</a>`; }
+    } else {
+        html = `<a href="${url}" download class="download-link">下载 ${fileName}</a>`;
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    return html;
+}
+
+async function showPersonMediaInModal(personName) {
+    modalTitle.innerHTML = `📁 ${escapeHtml(personName)} 的资料`;
+    modalBody.innerHTML = `<div class="empty-media-modal">⏳ 加载中...</div>`;
+    openModal();
+
+    if (isOnline) {
+        const manifest = await loadManifestOnline();
+        const files = manifest && manifest[personName] ? manifest[personName] : [];
+        if (files.length === 0) {
+            modalBody.innerHTML = `<div class="empty-media-modal">📭 该人物暂无线上资料</div>`;
+            return;
+        }
+        let listHtml = `<div class="file-list-modal">`;
+        for (const fname of files) {
+            const url = `${GITHUB_BASE}${encodeURIComponent(personName)}/${encodeURIComponent(fname)}`;
+            listHtml += `<div class="file-item-modal" data-url="${escapeHtml(url)}" data-name="${escapeHtml(fname)}">
+                <span class="file-name-modal">${escapeHtml(fname)}</span>
+            </div>`;
+        }
+        listHtml += `</div><div id="onlinePreviewArea" class="media-preview-modal"><div class="empty-media-modal">点击上方文件预览</div></div>`;
+        modalBody.innerHTML = listHtml;
+        const previewDiv = document.getElementById('onlinePreviewArea');
+        document.querySelectorAll('.file-item-modal').forEach(el => {
+            const url = el.getAttribute('data-url');
+            const name = el.getAttribute('data-name');
+            el.onclick = async () => {
+                if (previewDiv) previewDiv.innerHTML = await previewOnlineFile(url, name);
+            };
+        });
+        if (files[0] && previewDiv) {
+            const url = `${GITHUB_BASE}${encodeURIComponent(personName)}/${encodeURIComponent(files[0])}`;
+            previewDiv.innerHTML = await previewOnlineFile(url, files[0]);
+        }
+        return;
+    }
+
+    if (!folderHandle) {
+        modalBody.innerHTML = `<div class="empty-media-modal">⚠️ 请先点击「加载资料库」授权文件夹</div>`;
+        return;
+    }
+    try {
+        const personDir = await folderHandle.getDirectoryHandle(personName);
+        const fileHandles = [];
+        for await (const entry of personDir.values()) {
+            if (entry.kind === 'file') fileHandles.push({ name: entry.name, handle: entry });
+        }
+        if (fileHandles.length === 0) {
+            modalBody.innerHTML = `<div class="empty-media-modal">📭 该人物暂无本地资料</div>`;
+            return;
+        }
+        fileHandles.sort((a,b) => a.name.localeCompare(b.name));
+
+        let listHtml = `<div class="file-list-modal">`;
+        for (const f of fileHandles) {
+            listHtml += `<div class="file-item-modal" data-filename="${escapeHtml(f.name)}">
+                <span class="file-name-modal">${escapeHtml(f.name)}</span>
+            </div>`;
+        }
+        listHtml += `</div><div id="localPreviewArea" class="media-preview-modal"><div class="empty-media-modal">点击上方文件预览</div></div>`;
+        modalBody.innerHTML = listHtml;
+
+        const previewDiv = document.getElementById('localPreviewArea');
+        document.querySelectorAll('.file-item-modal').forEach(el => {
+            const fname = el.getAttribute('data-filename');
+            const fileObj = fileHandles.find(f => f.name === fname);
+            if (fileObj) {
+                el.onclick = async () => {
+                    if (previewDiv) {
+                        previewDiv.innerHTML = '<div class="empty-media-modal">⏳ 加载中...</div>';
+                        try {
+                            const file = await fileObj.handle.getFile();
+                            previewDiv.innerHTML = await previewLocalFile(file, fileObj.name);
+                        } catch(e) { previewDiv.innerHTML = `<div class="empty-media-modal">❌ 读取失败</div>`; }
+                    }
+                };
+            }
+        });
+        if (fileHandles[0] && previewDiv) {
+            try {
+                const file = await fileHandles[0].handle.getFile();
+                previewDiv.innerHTML = await previewLocalFile(file, fileHandles[0].name);
+            } catch(e) { previewDiv.innerHTML = `<div class="empty-media-modal">⚠️ 无法预览</div>`; }
+        }
+    } catch(err) {
+        modalBody.innerHTML = `<div class="empty-media-modal">❌ 找不到“${escapeHtml(personName)}”文件夹</div>`;
+    }
+}
+
+// ---- 加载 manifest ----
+async function loadManifestOnline() {
+    if (manifestCache) return manifestCache;
+    try {
+        const resp = await fetch(MANIFEST_URL_ONLINE);
+        if (resp.ok) {
+            manifestCache = await resp.json();
+            return manifestCache;
+        }
+    } catch(e) {}
+    return null;
+}
+
+async function loadManifestFromFolder() {
+    if (!rootHandle) return null;
+    try {
+        const fileHandle = await rootHandle.getFileHandle('manifest.json');
+        const file = await fileHandle.getFile();
+        const text = await file.text();
+        manifestCache = JSON.parse(text);
+        return manifestCache;
+    } catch(e) { return null; }
+}
+
+async function buildManifestFromFolder() {
+    if (!rootHandle) return null;
+    const manifest = {};
+    try {
+        let dataDir = null;
+        for await (const entry of rootHandle.values()) {
+            if (entry.kind === 'directory' && entry.name === FOLDER_NAME) {
+                dataDir = entry;
+                break;
+            }
+        }
+        if (!dataDir) return null;
+        for await (const entry of dataDir.values()) {
+            if (entry.kind === 'directory') {
+                const personName = entry.name;
+                const files = [];
+                try {
+                    const personDir = await dataDir.getDirectoryHandle(personName);
+                    for await (const fileEntry of personDir.values()) {
+                        if (fileEntry.kind === 'file') files.push(fileEntry.name);
+                    }
+                    if (files.length > 0) manifest[personName] = files;
+                } catch(e) {}
+            }
+        }
+        return manifest;
+    } catch(e) { return null; }
+}
+
+async function saveManifestToFolder(manifest) {
+    if (!rootHandle) return false;
+    try {
+        const json = JSON.stringify(manifest, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        let fileHandle;
+        try {
+            fileHandle = await rootHandle.getFileHandle('manifest.json');
+        } catch(e) {
+            fileHandle = await rootHandle.getFileHandle('manifest.json', { create: true });
+        }
+        const writable = await fileHandle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        return true;
+    } catch(e) {
+        const json = JSON.stringify(manifest, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'manifest.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        return true;
+    }
+}
+
+// ---- 主加载 ----
+async function loadData() {
+    let manifest = null;
+
+    if (isOnline) {
+        manifest = await loadManifestOnline();
+        if (manifest && Object.keys(manifest).length > 0) {
+            allData = manifest;
+            renderContributors(allData);
+            folderStatus.innerHTML = '✅ 线上资料加载成功';
+            folderStatus.style.color = '#2c5a2c';
+            return;
+        }
+        folderStatus.innerHTML = '❌ 线上加载失败';
+        folderStatus.style.color = '#c00';
+        return;
+    }
+
+    if (rootHandle) {
+        manifest = await loadManifestFromFolder();
+        if (manifest && Object.keys(manifest).length > 0) {
+            allData = manifest;
+            renderContributors(allData);
+            folderStatus.innerHTML = '✅ 加载 manifest.json 成功';
+            folderStatus.style.color = '#2c5a2c';
+            return;
+        }
+        folderStatus.innerHTML = '📂 正在自动生成 manifest.json...';
+        folderStatus.style.color = '#8b5a2b';
+        manifest = await buildManifestFromFolder();
+        if (manifest && Object.keys(manifest).length > 0) {
+            await saveManifestToFolder(manifest);
+            manifestCache = manifest;
+            allData = manifest;
+            renderContributors(allData);
+            folderStatus.innerHTML = '✅ 已自动生成并加载';
+            folderStatus.style.color = '#2c5a2c';
+            return;
+        }
+        folderStatus.innerHTML = '❌ 未找到任何资料文件';
+        folderStatus.style.color = '#c00';
+        return;
+    }
+
+    folderStatus.innerHTML = '📁 请点击「加载资料库」授权文件夹';
+    folderStatus.style.color = '#8b5a2b';
+}
+
+// ---- 渲染 ----
+function renderContributors(data) {
+    const names = Object.keys(data);
+    contributorCount.textContent = names.length;
+
+    if (names.length === 0) {
+        contributorContainer.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">暂无贡献者数据</div>';
+        galleryContainer.innerHTML = '';
+        fileCountDisplay.textContent = '📎 0 张';
+        return;
+    }
+
+    let html = '';
+    names.forEach(name => {
+        const count = Array.isArray(data[name]) ? data[name].length : 0;
+        const avatar = name.charAt(0) || '👤';
+        html += `
+            <div class="contributor-card" data-name="${escapeHtml(name)}">
+                <span class="avatar">${escapeHtml(avatar)}</span>
+                <div>${escapeHtml(name)}</div>
+                <div style="font-size:0.75rem;font-weight:400;color:#6c819c;">${count} 项</div>
+            </div>
+        `;
+    });
+    contributorContainer.innerHTML = html;
+
+    document.querySelectorAll('.contributor-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const name = this.getAttribute('data-name');
+            if (name && allData[name]) {
+                currentPerson = name;
+                renderGallery(name, allData[name]);
+            }
+        });
+    });
+
+    if (names.length > 0) {
+        const firstName = names[0];
+        currentPerson = firstName;
+        renderGallery(firstName, data[firstName]);
+    }
+}
+
+// ============================================================
+// 核心：renderGallery（本地模式用 File System API 加载图片）
+// ============================================================
+async function renderGallery(personName, fileList) {
+    galleryContainer.innerHTML = '';
+    emptyMessage.style.display = 'none';
+
+    if (!fileList || !Array.isArray(fileList) || fileList.length === 0) {
+        emptyMessage.style.display = 'block';
+        emptyMessage.innerHTML = `<div style="font-size:2.8rem;margin-bottom:10px;">📭</div><div>“${escapeHtml(personName)}” 暂无资料</div>`;
+        fileCountDisplay.textContent = '📎 0 张';
+        return;
+    }
+
+    fileCountDisplay.textContent = `📎 ${fileList.length} 张`;
+
+    // ---- 线上模式：直接用 URL ----
+    if (isOnline) {
+        let html = '';
+        for (const filename of fileList) {
+            const fullPath = `${GITHUB_BASE}${encodeURIComponent(personName)}/${encodeURIComponent(filename)}`;
+            html += `
+                <div class="gallery-item">
+                    <img src="${fullPath}" alt="${escapeHtml(filename)}" loading="lazy" onerror="this.style.display='none';">
+                    <div class="filename">
+                        <span title="${escapeHtml(filename)}">${escapeHtml(filename)}</span>
+                        <button class="copy-btn" data-copy="${escapeHtml(fullPath)}" title="复制路径">📋</button>
+                    </div>
+                </div>
+            `;
+        }
+        galleryContainer.innerHTML = html;
+        bindCopyEvents();
+        return;
+    }
+
+    // ---- 本地模式：用 File System API ----
+    if (!folderHandle) {
+        galleryContainer.innerHTML = `<div class="empty-state">⚠️ 请先授权「资料文件夹」</div>`;
+        return;
+    }
+
+    try {
+        const personDir = await folderHandle.getDirectoryHandle(personName);
+        
+        // 构建占位容器
+        let html = '';
+        for (const filename of fileList) {
+            html += `
+                <div class="gallery-item" data-filename="${escapeHtml(filename)}">
+                    <div class="img-placeholder">⏳</div>
+                    <div class="filename">
+                        <span title="${escapeHtml(filename)}">${escapeHtml(filename)}</span>
+                        <button class="copy-btn" data-filename="${escapeHtml(filename)}" title="复制路径">📋</button>
+                    </div>
+                </div>
+            `;
+        }
+        galleryContainer.innerHTML = html;
+
+        // 逐个加载图片
+        const items = galleryContainer.querySelectorAll('.gallery-item');
+        for (const item of items) {
+            const filename = item.getAttribute('data-filename');
+            const placeholder = item.querySelector('.img-placeholder');
+            try {
+                const fileHandle = await personDir.getFileHandle(filename);
+                const file = await fileHandle.getFile();
+                const url = URL.createObjectURL(file);
+                const img = document.createElement('img');
+                img.src = url;
+                img.alt = filename;
+                img.loading = 'lazy';
+                img.style.cssText = 'width:100%;aspect-ratio:1/1;object-fit:cover;display:block;';
+                img.onerror = () => { img.style.display = 'none'; };
+                placeholder.replaceWith(img);
+                img.style.cursor = 'pointer';
+                img.addEventListener('click', () => {
+                    showSingleFilePreview(personName, filename);
+                });
+            } catch(e) {
+                placeholder.innerHTML = '❌';
+                console.warn('加载图片失败:', filename, e);
+            }
+        }
+
+        bindCopyEvents();
+
+    } catch(err) {
+        galleryContainer.innerHTML = `<div class="empty-state">❌ 无法读取“${escapeHtml(personName)}”的文件夹</div>`;
+        console.error(err);
+    }
+}
+
+function bindCopyEvents() {
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const text = this.getAttribute('data-copy') || this.getAttribute('data-filename');
+            if (text) copyToClipboard(text);
+        });
+    });
+}
+
+async function showSingleFilePreview(personName, fileName) {
+    modalTitle.innerHTML = `📁 ${escapeHtml(personName)} · ${escapeHtml(fileName)}`;
+    modalBody.innerHTML = `<div class="empty-media-modal">⏳ 加载中...</div>`;
+    openModal();
+
+    if (isOnline) {
+        const url = `${GITHUB_BASE}${encodeURIComponent(personName)}/${encodeURIComponent(fileName)}`;
+        modalBody.innerHTML = await previewOnlineFile(url, fileName);
+        return;
+    }
+
+    if (!folderHandle) {
+        modalBody.innerHTML = `<div class="empty-media-modal">⚠️ 请先授权「资料文件夹」</div>`;
+        return;
+    }
+    try {
+        const personDir = await folderHandle.getDirectoryHandle(personName);
+        const fileHandle = await personDir.getFileHandle(fileName);
+        const file = await fileHandle.getFile();
+        modalBody.innerHTML = await previewLocalFile(file, fileName);
+    } catch(err) {
+        modalBody.innerHTML = `<div class="empty-media-modal">❌ 无法读取文件</div>`;
+    }
+}
+
+// ---- 文件夹授权 ----
+selectFolderBtn.onclick = async () => {
+    if (isOnline) {
+        folderStatus.innerHTML = '🌐 线上模式，无需授权';
+        return;
+    }
+
+    try {
+        folderStatus.innerHTML = '📂 请选择包含「资料文件夹」的目录';
+        const handle = await window.showDirectoryPicker();
+        rootHandle = handle;
+        folderHandle = null;
+
+        for await (const entry of rootHandle.values()) {
+            if (entry.kind === 'directory' && entry.name === FOLDER_NAME) {
+                folderHandle = entry;
+                break;
+            }
+        }
+
+        if (folderHandle) {
+            folderStatus.innerHTML = '✅ 已授权「资料文件夹」';
+            folderStatus.style.color = '#2c5a2c';
+            await loadData();
+        } else {
+            folderStatus.innerHTML = `❌ 未找到「${FOLDER_NAME}」文件夹`;
+            folderStatus.style.color = '#c00';
+        }
+    } catch(err) {
+        if (err.name !== 'AbortError') {
+            folderStatus.innerHTML = '⚠️ 授权失败';
+            folderStatus.style.color = '#c00';
+        }
+    }
+};
+
+// ---- 启动 ----
+loadData();
+
+if (isOnline) {
+    selectFolderBtn.disabled = true;
+    selectFolderBtn.textContent = '📂 线上模式';
+    selectFolderBtn.style.opacity = '0.6';
+}
+</script>
+</body>
+</html>
