@@ -769,27 +769,46 @@ function setupSpeechRecognition() {
     recognizer.lang = 'zh-CN';
     recognizer.continuous = false;
     recognizer.interimResults = true;
+    let queryTriggered = false;
+    let autoStopTimer = null;
     recognizer.onstart = () => {
         isListening = true;
+        queryTriggered = false;
+        document.getElementById('voiceQueryInput').value = '';
         micBtn.classList.add('listening');
-        micStatus.textContent = '🎙️ 正在听...';
+        micStatus.textContent = '🎙️ 正在听...（说完可再次点🎤结束）';
+        // 部分安卓浏览器不会自动判定"说完了"，加一个兜底：最多听12秒后自动结束
+        clearTimeout(autoStopTimer);
+        autoStopTimer = setTimeout(() => { if (isListening) recognizer.stop(); }, 12000);
     };
     recognizer.onresult = (e) => {
         let transcript = '';
         for (let i = 0; i < e.results.length; i++) transcript += e.results[i][0].transcript;
         document.getElementById('voiceQueryInput').value = transcript;
         if (e.results[e.results.length - 1].isFinal) {
+            queryTriggered = true;
             micStatus.textContent = '✅ 识别完成，正在查询...';
             runNaturalQuery(transcript);
         }
     };
     recognizer.onerror = (e) => {
-        micStatus.textContent = `⚠️ 语音识别出错：${e.error}`;
+        micStatus.textContent = `⚠️ 语音识别出错：${e.error}${e.error === 'not-allowed' ? '（请检查是否已允许网站使用麦克风）' : ''}`;
     };
     recognizer.onend = () => {
+        clearTimeout(autoStopTimer);
         isListening = false;
         micBtn.classList.remove('listening');
-        if (micStatus.textContent === '🎙️ 正在听...') micStatus.textContent = '';
+        // 兜底：如果浏览器没有触发过"isFinal"的结果（部分安卓浏览器常见），
+        // 用户手动点击结束或超时结束时，用已经识别出来的文字直接发起查询。
+        if (!queryTriggered) {
+            const text = document.getElementById('voiceQueryInput').value.trim();
+            if (text) {
+                micStatus.textContent = '✅ 已结束，正在查询...';
+                runNaturalQuery(text);
+            } else {
+                micStatus.textContent = '⚠️ 没有识别到内容，请重试或直接打字。';
+            }
+        }
     };
     micBtn.addEventListener('click', () => {
         if (isListening) { recognizer.stop(); return; }
