@@ -2,237 +2,491 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>家族关系查询系统 · DeepSeek Agent 加强版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家族亲戚关系网查询系统 (常规完善版)</title>
     <style>
-        * { box-sizing: border-box; }
-        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f0e8; margin: 0; padding: 16px; color: #333; }
-        .container { max-width: 1000px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); overflow: hidden; }
-        .header { background: #8b5a2b; color: white; padding: 24px 20px; text-align: center; }
-        .header h1 { margin: 0; font-size: 1.6rem; }
-        .header p { margin: 8px 0 0; opacity: 0.9; font-size: 0.85rem; }
-        .content { padding: 20px; }
-        
-        .status-bar { background: #f0e8d8; padding: 12px 16px; border-radius: 12px; margin-bottom: 20px; font-size: 0.85rem; font-weight: bold; color: #5a3d1e; }
-        
-        /* 搜索框区 */
-        .section-title { font-size: 1rem; font-weight: bold; margin-bottom: 10px; color: #8b5a2b; display: flex; align-items: center; gap: 6px; }
-        .input-group { display: flex; gap: 10px; margin-bottom: 16px; }
-        .input-group input { flex: 1; padding: 12px 16px; font-size: 0.95rem; border: 1px solid #ddd; border-radius: 25px; outline: none; }
-        .input-group button { background: #8b5a2b; color: white; border: none; padding: 12px 24px; border-radius: 25px; cursor: pointer; font-weight: bold; font-size: 0.95rem; }
-        .input-group button:hover { background: #724820; }
-        
-        /* 结果展示区 */
-        .result-box { background: #faf8f0; border-radius: 12px; padding: 16px; font-size: 0.9rem; line-height: 1.6; border: 1px solid #e0d6c0; margin-bottom: 24px; min-height: 80px; }
-        .result-box pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-family: inherit; }
-        
-        /* AI Agent 对话区 */
-        .agent-card { background: #f0f7ff; border: 1px solid #cce3ff; border-radius: 16px; padding: 20px; }
-        .agent-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; color: #1e40af; font-size: 1.1rem; font-weight: bold; }
-        .chat-box { background: white; border-radius: 12px; padding: 14px; height: 220px; overflow-y: auto; font-size: 0.9rem; border: 1px solid #cbd5e1; margin-bottom: 12px; }
-        .chat-msg { margin-bottom: 10px; }
-        .chat-msg.user { text-align: right; }
-        .chat-msg.user span { background: #dbeafe; padding: 8px 14px; border-radius: 14px; display: inline-block; color: #1e3a8a; }
-        .chat-msg.agent span { background: #f1f5f9; padding: 8px 14px; border-radius: 14px; display: inline-block; color: #0f172a; border: 1px solid #e2e8f0; }
-        .chat-msg.system { color: #64748b; font-style: italic; font-size: 0.85rem; }
-        
-        .chat-input-row { display: flex; gap: 8px; }
-        .chat-input-row input { flex: 1; padding: 10px 16px; border: 1px solid #cbd5e1; border-radius: 20px; outline: none; font-size: 0.9rem; }
-        .chat-input-row button { background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
-        .chat-input-row button:hover { background: #1d4ed8; }
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --bg: #f8f9fa;
+            --panel-bg: #ffffff;
+            --border: #e9ecef;
+        }
 
-        .footer { text-align: center; padding: 16px; font-size: 0.75rem; color: #a0aec0; border-top: 1px solid #edf2f7; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: #333; height: 100vh; display: flex; flex-direction: column; }
+
+        header { background: var(--primary); color: white; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h1 { font-size: 1.25rem; font-weight: 600; }
+
+        .container { display: flex; flex: 1; overflow: hidden; }
+
+        /* 左侧控制与搜索面板 */
+        .sidebar { width: 360px; background: var(--panel-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 10; }
+        .tabs { display: flex; border-bottom: 1px solid var(--border); background: #eee; }
+        .tab-btn { flex: 1; padding: 0.75rem; border: none; background: none; cursor: pointer; font-weight: 600; color: #666; }
+        .tab-btn.active { background: white; color: var(--accent); border-bottom: 2px solid var(--accent); }
+
+        .tab-content { flex: 1; padding: 1rem; overflow-y: auto; display: none; }
+        .tab-content.active { display: block; }
+
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: #555; }
+        input, select, button { width: 100%; padding: 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; }
+        button.btn-primary { background: var(--accent); color: white; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        button.btn-primary:hover { background: #2980b9; }
+
+        .result-card { background: #f1f8ff; border-left: 4px solid var(--accent); padding: 0.8rem; border-radius: 4px; margin-top: 1rem; }
+        .result-card h3 { font-size: 1rem; margin-bottom: 0.5rem; color: var(--primary); }
+
+        /* 右侧画布与可视化 */
+        .main-stage { flex: 1; position: relative; background: #fafafa; overflow: hidden; display: flex; flex-direction: column; }
+        .toolbar { position: absolute; top: 1rem; right: 1rem; background: white; padding: 0.5rem; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; gap: 0.5rem; z-index: 5; }
+        .toolbar button { width: auto; padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+
+        #tree-canvas { width: 100%; height: 100%; cursor: grab; }
+        #tree-canvas:active { cursor: grabbing; }
+
+        /* 状态栏 */
+        footer { background: #fff; border-top: 1px solid var(--border); padding: 0.5rem 1.5rem; font-size: 0.8rem; color: #777; display: flex; justify-content: space-between; }
+        .tag { display: inline-block; padding: 2px 6px; background: #e0e0e0; border-radius: 3px; font-size: 0.75rem; margin-right: 4px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="header">
-        <h1>📜 家族关系查询系统</h1>
-        <p>支持节点精确检索 & DeepSeek AI Agent 智能推理问答</p>
+    <header>
+        <h1>家族亲戚关系网查询系统 (常规完善版)</h1>
+        <div>
+            <input type="file" id="file-input" accept=".jsonl,.json" style="display:none">
+            <button onclick="document.getElementById('file-input').click()" style="width:auto; padding:0.4rem 0.8rem; background:#4cae4c; color:white; border:none; border-radius:4px; cursor:pointer;">导入 JSONL 数据</button>
+            <button onclick="loadSampleData()" style="width:auto; padding:0.4rem 0.8rem; background:#f0ad4e; color:white; border:none; border-radius:4px; cursor:pointer;">加载测试数据</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- 左侧面板 -->
+        <div class="sidebar">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('single')">单人查询</button>
+                <button class="tab-btn" onclick="switchTab('pair')">双人关系测算</button>
+                <button class="tab-btn" onclick="switchTab('filter')">高级筛选</button>
+            </div>
+
+            <!-- Tab 1: 单人关系网展开 -->
+            <div id="tab-single" class="tab-content active">
+                <div class="form-group">
+                    <label>选择/搜索成员 (n):</label>
+                    <input type="text" id="single-search" list="person-list" placeholder="输入姓名或ID...">
+                    <datalist id="person-list"></datalist>
+                </div>
+                <button class="btn-primary" onclick="querySingle()">展开亲属关系网</button>
+
+                <div id="single-result"></div>
+            </div>
+
+            <!-- Tab 2: 双人关系计算 (补全核心功能) -->
+            <div id="tab-pair" class="tab-content">
+                <div class="form-group">
+                    <label>起点成员 (A):</label>
+                    <input type="text" id="pair-a" list="person-list" placeholder="起点姓名或ID...">
+                </div>
+                <div class="form-group">
+                    <label>目标成员 (B):</label>
+                    <input type="text" id="pair-b" list="person-list" placeholder="终点姓名或ID...">
+                </div>
+                <button class="btn-primary" onclick="queryPair()">推算两者关系</button>
+
+                <div id="pair-result"></div>
+            </div>
+
+            <!-- Tab 3: 高级条件筛选 -->
+            <div id="tab-filter" class="tab-content">
+                <div class="form-group">
+                    <label>按性别筛选 (s):</label>
+                    <select id="filter-gender" onchange="applyFilter()">
+                        <option value="">全部</option>
+                        <option value="男">男</option>
+                        <option value="女">女</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>生存状态 (基于 info 关键词):</label>
+                    <select id="filter-status" onchange="applyFilter()">
+                        <option value="">全部</option>
+                        <option value="健在">健在</option>
+                        <option value="已故">已故 / 卒</option>
+                    </select>
+                </div>
+                <div id="filter-result-summary" style="font-size: 0.85rem; color: #666; margin-top: 1rem;"></div>
+            </div>
+        </div>
+
+        <!-- 右侧画布区 -->
+        <div class="main-stage">
+            <div class="toolbar">
+                <button onclick="resetZoom()">重置视角</button>
+                <button onclick="exportCanvas()">导出图片</button>
+            </div>
+            <canvas id="tree-canvas"></canvas>
+        </div>
     </div>
 
-    <div class="content">
-        <!-- 数据加载状态 -->
-        <div class="status-bar" id="statusBar">⏳ 正在读取 family_data.jsonl 数据库...</div>
+    <footer>
+        <span id="status-text">系统就绪，请加载数据。</span>
+        <span id="stats-text">节点数: 0</span>
+    </footer>
 
-        <!-- 传统节点精确查询区 -->
-        <div class="section-title">🔍 传统精确节点查询</div>
-        <div class="input-group">
-            <input type="text" id="nodeSearchInput" placeholder="输入成员姓名 (例: 冯宗德)" value="冯宗德">
-            <button onclick="searchNode()">查询节点</button>
-        </div>
-        <div class="result-box" id="nodeResult">
-            <pre>请输入姓名点击“查询节点”查看详细履历信息...</pre>
-        </div>
+    <script>
+        // 核心数据结构: n.s.f.m.sp.info
+        let database = new Map(); // key: ID/Name (n), value: Person Object
 
-        <!-- DeepSeek AI Agent 智能问答区 -->
-        <div class="agent-card">
-            <div class="agent-header">
-                <span style="font-size: 1.3rem;">🤖</span>
-                <span>DeepSeek 家族 AI 智能助手</span>
-            </div>
+        // DOM 元素引用
+        const canvas = document.getElementById('tree-canvas');
+        const ctx = canvas.getContext('2d');
+        let transform = { x: 0, y: 0, scale: 1 };
+        let isDragging = false;
+        let startPan = { x: 0, y: 0 };
+        let highlightedNodes = new Set();
+        let selectedNode = null;
+
+        // 初始化 Canvas 尺寸
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            draw();
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        // UI 选项卡切换
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             
-            <div class="chat-box" id="chatHistory">
-                <div class="chat-msg system">你好！我是家族 AI 助手。你可以问我复杂的亲属关系，比如：“某某和某某是什么关系？”或“按习俗我该怎么称呼某某？”</div>
-            </div>
-
-            <div class="chat-input-row">
-                <input type="text" id="agentInput" placeholder="向 AI 助手提问亲戚关系或生平..." onkeypress="handleKeyPress(event)">
-                <button onclick="askAIAgent()">咨询 Agent</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="footer">家族关系网 | 基于 DeepSeek 大模型与 RAG 技术驱动</div>
-</div>
-
-<script>
-let familyDatabase = {};
-
-// 1. 初始化自动加载 JSONL 数据
-async function loadFamilyData() {
-    const statusBar = document.getElementById('statusBar');
-    try {
-        const response = await fetch('./family_data.jsonl');
-        if (response.ok) {
-            const text = await response.text();
-            familyDatabase = parseJsonl(text);
-            const count = Object.keys(familyDatabase).length;
-            statusBar.innerText = `✅ 家族数据库加载成功，共包含 ${count} 位成员档案。`;
-            statusBar.style.color = '#2e6a38';
-        } else {
-            statusBar.innerText = '⚠️ 未找到 family_data.jsonl 文件，请确保数据文件已同步到仓库根目录。';
-            statusBar.style.color = '#c53030';
-        }
-    } catch (e) {
-        statusBar.innerText = 'ℹ️ 无法访问 JSONL 数据库，请检查网络或路径配置。';
-        statusBar.style.color = '#c53030';
-    }
-}
-
-// 解析 JSONL 文本为 JavaScript 对象
-function parseJsonl(jsonlText) {
-    const lines = jsonlText.split(/\r?\n/);
-    const db = {};
-    for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-            const record = JSON.parse(line);
-            if (record.n) {
-                db[record.n] = record;
+            if(tabName === 'single') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('tab-single').classList.add('active');
+            } else if(tabName === 'pair') {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('tab-pair').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab-btn')[2].classList.add('active');
+                document.getElementById('tab-filter').classList.add('active');
             }
-        } catch (e) {
-            console.error('JSONL 解析行失败:', line);
         }
-    }
-    return db;
-}
 
-// 2. 传统精确查节点逻辑
-function searchNode() {
-    const name = document.getElementById('nodeSearchInput').value.trim();
-    const resultBox = document.getElementById('nodeResult');
-    
-    if (!name) {
-        resultBox.innerHTML = '<pre>⚠️ 请输入正确的成员姓名。</pre>';
-        return;
-    }
+        // 1. 数据解析模块
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
 
-    const info = familyDatabase[name];
-    if (!info) {
-        resultBox.innerHTML = `<pre>❌ 未在档案库中找到成员：“${name}”</pre>`;
-        return;
-    }
-
-    const spouseText = Array.isArray(info.sp) ? info.sp.join(', ') : (info.sp || '无');
-    
-    const outputText = `👤 姓名 ID (n): ${info.n}
-⚧ 性别 (s): ${info.s || '未登记'}
-👨 父亲 (f): ${info.f || '未登记'}
-👩 母亲 (m): ${info.m || '未登记'}
-💍 配偶 (sp): ${spouseText}
-📝 生卒日及备注 (info): ${info.info || '无'}`;
-
-    resultBox.innerHTML = `<pre>${outputText}</pre>`;
-}
-
-// 3. AI Agent 对话交互
-function handleKeyPress(e) {
-    if (e.key === 'Enter') askAIAgent();
-}
-
-async function askAIAgent() {
-    const inputField = document.getElementById('agentInput');
-    const history = document.getElementById('chatHistory');
-    const query = inputField.value.trim();
-
-    if (!query) return;
-
-    // 显示用户问话
-    history.innerHTML += `<div class="chat-msg user"><span>${escapeHtml(query)}</span></div>`;
-    inputField.value = '';
-    history.scrollTop = history.scrollHeight;
-
-    // 显示思考状态
-    const loadingId = "loading_" + Date.now();
-    history.innerHTML += `<div class="chat-msg system" id="${loadingId}">🤖 DeepSeek Agent 正在解析家族知识库并推理中...</div>`;
-    history.scrollTop = history.scrollHeight;
-
-    // 组装带 RAG 知识库上下的 Prompt
-    const contextRecords = Object.values(familyDatabase);
-    const systemPrompt = `你是一位严谨体贴的家族档案 AI 专家。
-你可以读取家族树结构数据(n=姓名, s=性别, f=父, m=母, sp=配偶, info=生卒信息)。
-
-家族背景数据如下：
-${JSON.stringify(contextRecords)}
-
-请根据上述真实数据，结合中国传统亲属称谓习惯解答用户的疑问。若数据未提及请明确说明，切勿编造关系。`;
-
-    try {
-        // 调用后端 Agent API (注意：开发调试时也可配置后端转发)
-        const response = await fetch('https://api.deepseek.com/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer YOUR_LLM_API_KEY_HERE' // 可替换为您实际的 API 代理点
-            },
-            body: JSON.stringify({
-                model: 'deepseek-chat',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: query }
-                ],
-                temperature: 0.1
-            })
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                parseJSONL(evt.target.result);
+            };
+            reader.readAsText(file);
         });
 
-        const data = await response.json();
-        document.getElementById(loadingId).remove();
+        function parseJSONL(text) {
+            database.clear();
+            const lines = text.split('\n');
+            let count = 0;
 
-        if (data.choices && data.choices[0]) {
-            const reply = data.choices[0].message.content;
-            history.innerHTML += `<div class="chat-msg agent"><span>🤖 ${escapeHtml(reply)}</span></div>`;
-        } else {
-            history.innerHTML += `<div class="chat-msg system">⚠️ Agent 接口未返回结果，请检查密钥或调用格式。</div>`;
+            lines.forEach(line => {
+                if (!line.trim()) return;
+                try {
+                    const item = JSON.parse(line);
+                    // 标准数据结构规范: n, s, f, m, sp, info
+                    if (item.n) {
+                        database.set(item.n, {
+                            n: item.n,
+                            s: item.s || '未知',
+                            f: item.f || '',
+                            m: item.m || '',
+                            sp: item.sp || '',
+                            info: item.info || '',
+                            // 计算坐标用
+                            x: 0, y: 0
+                        });
+                        count++;
+                    }
+                } catch (e) {
+                    console.error("解析行错误:", line);
+                }
+            });
+
+            updateDatalist();
+            document.getElementById('status-text').innerText = `成功加载 ${count} 条家族记录`;
+            document.getElementById('stats-text').innerText = `节点数: ${count}`;
+            autoLayout();
+            draw();
         }
-    } catch (err) {
-        if(document.getElementById(loadingId)) document.getElementById(loadingId).remove();
-        history.innerHTML += `<div class="chat-msg system">⚠️ 连接 Agent 失败，请确认 API Key 是否在后台环境配置成功。</div>`;
-    }
 
-    history.scrollTop = history.scrollHeight;
-}
+        function loadSampleData() {
+            const sample = 
+`{"n":"冯高祖","s":"男","f":"","m":"","sp":"高祖母","info":"1900-1970"}
+{"n":"高祖母","s":"女","f":"","m":"","sp":"冯高祖","info":"1902-1975"}
+{"n":"冯曾祖","s":"男","f":"冯高祖","m":"高祖母","sp":"曾祖母","info":"1925-1998"}
+{"n":"曾祖母","s":"女","f":"","m":"","sp":"冯曾祖","info":"1928-2005"}
+{"n":"冯祖父","s":"男","f":"冯曾祖","m":"曾祖母","sp":"祖母","info":"1950-"}
+{"n":"祖母","s":"女","f":"","m":"","sp":"冯祖父","info":"1952-"}
+{"n":"舅公","s":"男","f":"冯曾祖","m":"曾祖母","sp":"","info":"1955-"}
+{"n":"冯父亲","s":"男","f":"冯祖父","m":"祖母","sp":"母亲","info":"1975-"}
+{"n":"母亲","s":"女","f":"","m":"","sp":"冯父亲","info":"1977-"}
+{"n":"姑姑","s":"女","f":"冯祖父","m":"祖母","sp":"","info":"1978-"}
+{"n":"自己","s":"男","f":"冯父亲","m":"母亲","sp":"","info":"2000-"}
+{"n":"堂兄","s":"男","f":"冯祖父","m":"祖母","sp":"","info":"1998-"}`;
 
-function escapeHtml(text) {
-    return text.replace(/[&<>"']/g, function(m) {
-        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
-    });
-}
+            parseJSONL(sample);
+        }
 
-// 页面加载完成后自动触发数据读取
-window.onload = loadFamilyData;
-</script>
+        function updateDatalist() {
+            const list = document.getElementById('person-list');
+            list.innerHTML = '';
+            database.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.n;
+                list.appendChild(opt);
+            });
+        }
 
+        // 2. 双人关系求解引擎 (基于广度优先搜索 BFS)
+        function queryPair() {
+            const nameA = document.getElementById('pair-a').value.trim();
+            const nameB = document.getElementById('pair-b').value.trim();
+            const container = document.getElementById('pair-result');
+
+            if (!database.has(nameA) || !database.has(nameB)) {
+                container.innerHTML = `<div class="result-card" style="border-color:red">错误: 请确保输入的两人都在系统数据中。</div>`;
+                return;
+            }
+
+            if (nameA === nameB) {
+                container.innerHTML = `<div class="result-card">同一个人无需计算。</div>`;
+                return;
+            }
+
+            // BFS 求解最短路径
+            const queue = [[nameA, []]];
+            const visited = new Set([nameA]);
+            let foundPath = null;
+
+            while (queue.length > 0) {
+                const [curr, path] = queue.shift();
+
+                if (curr === nameB) {
+                    foundPath = path;
+                    break;
+                }
+
+                const p = database.get(curr);
+                if (!p) continue;
+
+                // 寻找所有相连关系
+                const neighbors = [];
+                if (p.f) neighbors.push({ id: p.f, rel: '父亲' });
+                if (p.m) neighbors.push({ id: p.m, rel: '母亲' });
+                if (p.sp) neighbors.push({ id: p.sp, rel: '配偶' });
+
+                // 寻找子女
+                database.forEach(child => {
+                    if (child.f === curr || child.m === curr) {
+                        neighbors.push({ id: child.n, rel: child.s === '女' ? '女儿' : '儿子' });
+                    }
+                });
+
+                for (let nxt of neighbors) {
+                    if (!visited.has(nxt.id) && database.has(nxt.id)) {
+                        visited.add(nxt.id);
+                        queue.push([nxt.id, [...path, { from: curr, to: nxt.id, rel: nxt.rel }]]);
+                    }
+                }
+            }
+
+            if (foundPath) {
+                highlightedNodes = new Set([nameA, nameB, ...foundPath.map(step => step.to)]);
+                
+                let pathText = foundPath.map(step => ` ➔ [${step.rel}] ➔ <b>${step.to}</b>`).join('');
+                container.innerHTML = `
+                    <div class="result-card">
+                        <h3>推算成功</h3>
+                        <p><b>关系路径：</b><br><b>${nameA}</b>${pathText}</p>
+                        <p style="margin-top:0.5rem; font-size:0.85rem; color:#666;">路径长度: ${foundPath.length} 代/节点距离</p>
+                    </div>
+                `;
+            } else {
+                highlightedNodes.clear();
+                container.innerHTML = `<div class="result-card">未找到两者之间的直接血缘或姻亲纽带。</div>`;
+            }
+            draw();
+        }
+
+        // 3. 单人查询
+        function querySingle() {
+            const name = document.getElementById('single-search').value.trim();
+            const container = document.getElementById('single-result');
+            const p = database.get(name);
+
+            if (!p) {
+                container.innerHTML = `<div class="result-card" style="border-color:red">未找到该成员</div>`;
+                return;
+            }
+
+            selectedNode = name;
+            highlightedNodes = new Set([name]);
+
+            // 查找子女
+            let children = [];
+            database.forEach(c => {
+                if (c.f === name || c.m === name) children.push(c.n);
+            });
+
+            container.innerHTML = `
+                <div class="result-card">
+                    <h3>${p.n} (${p.s})</h3>
+                    <p><b>生卒/信息:</b> ${p.info || '暂无说明'}</p>
+                    <hr style="margin: 0.5rem 0; border:none; border-top:1px solid #ccc;">
+                    <p><b>父亲:</b> ${p.f || '未登记'}</p>
+                    <p><b>母亲:</b> ${p.m || '未登记'}</p>
+                    <p><b>配偶:</b> ${p.sp || '未登记'}</p>
+                    <p><b>子女:</b> ${children.length ? children.join('、') : '未登记'}</p>
+                </div>
+            `;
+            draw();
+        }
+
+        // 4. 高级条件筛选
+        function applyFilter() {
+            const gender = document.getElementById('filter-gender').value;
+            const status = document.getElementById('filter-status').value;
+
+            highlightedNodes.clear();
+
+            let count = 0;
+            database.forEach(p => {
+                let matchGender = !gender || p.s === gender;
+                let matchStatus = true;
+
+                if (status === '健在') {
+                    matchStatus = !p.info.includes('卒') && !p.info.includes('已故') && !p.info.match(/\d{4}\s*-\s*\d{4}/);
+                } else if (status === '已故') {
+                    matchStatus = p.info.includes('卒') || p.info.includes('已故') || p.info.match(/\d{4}\s*-\s*\d{4}/);
+                }
+
+                if (matchGender && matchStatus) {
+                    highlightedNodes.add(p.n);
+                    count++;
+                }
+            });
+
+            document.getElementById('filter-result-summary').innerText = `已高亮匹配到的 ${count} 名成员`;
+            draw();
+        }
+
+        // 5. 画布渲染与极简布局逻辑
+        function autoLayout() {
+            // 极简分层布局（按代际）
+            let x = 100, y = 100;
+            let i = 0;
+            database.forEach(p => {
+                p.x = 150 + (i % 5) * 160;
+                p.y = 100 + Math.floor(i / 5) * 120;
+                i++;
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.translate(transform.x, transform.y);
+            ctx.scale(transform.scale, transform.scale);
+
+            // 绘制连接线
+            database.forEach(p => {
+                // 连线到父亲
+                if (p.f && database.has(p.f)) {
+                    const parent = database.get(p.f);
+                    drawLine(p.x, p.y, parent.x, parent.y, '#999', '父子/女');
+                }
+                // 连线到配偶
+                if (p.sp && database.has(p.sp)) {
+                    const sp = database.get(p.sp);
+                    drawLine(p.x, p.y, sp.x, sp.y, '#e74c3c', '配偶');
+                }
+            });
+
+            // 绘制节点
+            database.forEach(p => {
+                const isHighlighted = highlightedNodes.has(p.n);
+                const isSelected = selectedNode === p.n;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 25, 0, Math.PI * 2);
+                
+                // 节点颜色分配
+                if (isSelected) ctx.fillStyle = '#f1c40f';
+                else if (isHighlighted) ctx.fillStyle = '#2ecc71';
+                else ctx.fillStyle = p.s === '女' ? '#e84393' : '#0984e3';
+
+                ctx.fill();
+                ctx.lineWidth = isHighlighted ? 3 : 1;
+                ctx.strokeStyle = '#fff';
+                ctx.stroke();
+
+                // 绘制文字
+                ctx.fillStyle = '#333';
+                ctx.font = '12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(p.n, p.x, p.y + 40);
+            });
+
+            ctx.restore();
+        }
+
+        function drawLine(x1, y1, x2, y2, color, label) {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+        }
+
+        // 交互逻辑 (拖拽与缩放)
+        canvas.addEventListener('mousedown', e => {
+            isDragging = true;
+            startPan = { x: e.clientX - transform.x, y: e.clientY - transform.y };
+        });
+
+        canvas.addEventListener('mousemove', e => {
+            if (isDragging) {
+                transform.x = e.clientX - startPan.x;
+                transform.y = e.clientY - startPan.y;
+                draw();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => isDragging = false);
+        canvas.addEventListener('wheel', e => {
+            e.preventDefault();
+            const zoom = e.deltaY < 0 ? 1.1 : 0.9;
+            transform.scale *= zoom;
+            draw();
+        });
+
+        function resetZoom() {
+            transform = { x: 0, y: 0, scale: 1 };
+            draw();
+        }
+
+        function exportCanvas() {
+            const link = document.createElement('a');
+            link.download = '家族关系图谱.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        // 初始化
+        resizeCanvas();
+    </script>
 </body>
 </html>
