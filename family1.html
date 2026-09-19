@@ -617,6 +617,77 @@ function printRelationshipsWithClick(startName, relations, people) {
     return lines.join('\n');
 }
 
+// --------------------- 称呼兼容层：把各地俗称/口语称呼映射为系统内部推导出的规范称呼 ---------------------
+// 单一对应关系（俗称 → 唯一规范称呼）
+const RELATION_SYNONYM_MAP = {
+    '父亲': ['爸爸','爸','老爸','爹','爹爹','家父'],
+    '母亲': ['妈妈','妈','老妈','娘','家母'],
+    '祖父': ['爷爷','阿公'],
+    '祖母': ['奶奶','阿嬷'],
+    '外祖父': ['外公','姥爷'],
+    '外祖母': ['外婆','姥姥'],
+    '曾祖父': ['太爷爷','老爷爷','太公'],
+    '曾祖母': ['太奶奶','老奶奶','太婆'],
+    '儿子': ['儿'],
+    '女儿': ['闺女'],
+    '孙子': ['孙'],
+    '兄': ['哥哥','哥','大哥'],
+    '弟': ['弟弟'],
+    '姐': ['姐姐'],
+    '妹': ['妹妹'],
+    '伯父': ['大爷','伯伯','大伯'],
+    '叔父': ['叔叔','叔'],
+    '姑母': ['姑姑','姑妈'],
+    '舅父': ['舅舅','舅'],
+    '姨母': ['姨妈','姨','姨娘'],
+    '侄子': ['侄儿'],
+    '嫂': ['嫂子','嫂嫂'],
+    '弟媳': ['弟妹'],
+    '伯母': ['大娘','伯娘','大妈'],
+    '叔母': ['婶婶','婶子','婶母'],
+    '姑父': ['姑丈'],
+    '舅母': ['舅妈'],
+    '姨父': ['姨丈'],
+    '儿媳': ['媳妇'],
+    '女婿': ['姑爷'],
+    '曾孙': ['重孙'],
+    '曾孙女': ['重孙女'],
+};
+// 一对多（俗称本身有歧义，可能对应系统里好几种规范称呼——例如口语"表弟"不区分是姑表/舅表/姨表）
+const RELATION_AMBIGUOUS_MAP = {
+    '表哥': ['姑表兄','舅表兄','姨表兄'],
+    '表兄': ['姑表兄','舅表兄','姨表兄'],
+    '表弟': ['姑表弟','舅表弟','姨表弟'],
+    '表姐': ['姑表姐','舅表姐','姨表姐'],
+    '表妹': ['姑表妹','舅表妹','姨表妹'],
+    '表兄弟': ['姑表兄弟','舅表兄弟','姨表兄弟'],
+    '表姐妹': ['姑表姐妹','舅表姐妹','姨表姐妹'],
+};
+// 反查表：俗称 → 规范称呼
+const RELATION_SYNONYM_REVERSE = {};
+for (const [canonical, aliases] of Object.entries(RELATION_SYNONYM_MAP)) {
+    for (const alias of aliases) RELATION_SYNONYM_REVERSE[alias] = canonical;
+}
+// 可能出现在称呼前面的辈分/亲缘修饰前缀（用于"堂叔叔""外婆家"这类带修饰的俗称）
+const RELATION_PREFIXES = ['外岳','夫家','妻家','亲家','再从','堂','姻','岳','族','远','内','外'];
+// 输入一个用户说的称呼，返回它在本系统里可能对应的所有规范称呼（数组，通常只有1个，歧义词有多个）
+function resolveRelationCandidates(term) {
+    term = (term || '').trim();
+    if (!term) return [];
+    if (RELATION_AMBIGUOUS_MAP[term]) return RELATION_AMBIGUOUS_MAP[term];
+    if (RELATION_SYNONYM_REVERSE[term]) return [RELATION_SYNONYM_REVERSE[term]];
+    // 尝试剥离修饰前缀后再查一次（如"堂叔叔" → 前缀"堂" + "叔叔"→"叔父" → "堂叔父"）
+    for (const prefix of RELATION_PREFIXES) {
+        if (term.startsWith(prefix) && term.length > prefix.length) {
+            const rest = term.slice(prefix.length);
+            if (RELATION_AMBIGUOUS_MAP[rest]) return RELATION_AMBIGUOUS_MAP[rest].map(c => prefix + c);
+            if (RELATION_SYNONYM_REVERSE[rest]) return [prefix + RELATION_SYNONYM_REVERSE[rest]];
+        }
+    }
+    // 没有匹配到俗称，就当作用户已经输入了规范称呼本身
+    return [term];
+}
+
 // --------------------- 查询①：两个姓名 → 关系称呼 ---------------------
 // 供页面按钮调用，也可被外部脚本/未来的API层直接调用。
 function queryPairRelation(nameA, nameB) {
@@ -637,6 +708,7 @@ function queryPairRelation(nameA, nameB) {
 }
 
 // --------------------- 查询②：姓名 + 关系称呼 → 匹配到的亲属列表 ---------------------
+// relTerm 支持各地俗称/口语说法（如"叔叔"="叔父"，"姑姑"="姑妈"="姑母"，"表弟"会同时匹配姑表/舅表/姨表弟）
 function queryPersonsByRelation(name, relTerm) {
     name = (name || '').trim();
     relTerm = (relTerm || '').trim();
@@ -644,6 +716,7 @@ function queryPersonsByRelation(name, relTerm) {
     if (!name) return { ok: false, message: '请输入姓名。' };
     if (!peopleData[name]) return { ok: false, message: `'${name}' 不在家谱中。` };
     if (!relTerm) return { ok: false, message: '请输入关系称呼，例如：表弟、姑母、外甥女。' };
+    const candidates = resolveRelationCandidates(relTerm);
     const relations = bfsRelationships(name, peopleData);
     const matches = [];
     for (const [pname, info] of Object.entries(relations)) {
@@ -652,12 +725,13 @@ function queryPersonsByRelation(name, relTerm) {
         try {
             rel = getRelationship(peopleData[name], peopleData[pname], info.pathPersons, info.pathOps, peopleData);
         } catch (e) { continue; }
-        if (rel === relTerm) matches.push({ name: pname, relation: rel });
+        if (candidates.includes(rel)) matches.push({ name: pname, relation: rel });
     }
+    const canonicalNote = (candidates.length === 1 && candidates[0] !== relTerm) ? `（按"${candidates[0]}"匹配）` : (candidates.length > 1 ? `（按${candidates.map(c=>`"${c}"`).join('/')}匹配）` : '');
     if (matches.length === 0) {
-        return { ok: false, message: `未找到 '${name}' 的「${relTerm}」。（称呼需与系统推导用词完全一致，例如"表弟"不等于"堂弟"）` };
+        return { ok: false, message: `未找到 '${name}' 的「${relTerm}」${canonicalNote}。换个称呼试试，或直接用系统推导出的规范称呼。` };
     }
-    return { ok: true, name, relTerm, matches, message: `${name} 的「${relTerm}」共 ${matches.length} 人` };
+    return { ok: true, name, relTerm, matches, message: `${name} 的「${relTerm}」${canonicalNote}共 ${matches.length} 人` };
 }
 
 // 暴露到全局，便于后续封装成API/供AI agent直接调用
