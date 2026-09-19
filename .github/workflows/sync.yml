@@ -1,4 +1,4 @@
-name: 家族档案双向智能同步引擎
+name: 家族档案 AI Agent 智能同步引擎
 
 on:
   schedule:
@@ -8,7 +8,7 @@ on:
     types: [feishu_sync]
 
 jobs:
-  sync:
+  agent_sync:
     runs-on: ubuntu-latest
     
     steps:
@@ -24,13 +24,12 @@ jobs:
         with:
           python-version: '3.10'
 
-      # 🌟 按照您的思路：先升级底层安装库，再清理缓存强行把模块安上去
-      - name: 3. 安装网络及飞书底层依赖
+      - name: 3. 安装网络及 Agent 依赖
         run: |
           python -m pip install --upgrade pip
-          pip install --no-cache-dir requests pypinyin
+          pip install --no-cache-dir requests pypinyin openai
 
-      - name: 4. 从各家保险柜灌注密钥，并启动超级引擎
+      - name: 4. 执行 AI Agent 数据校验与同步
         env:
           FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
           FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
@@ -38,31 +37,27 @@ jobs:
           FEISHU_TABLE_ID: ${{ secrets.FEISHU_TABLE_ID }}
           FEISHU_PWD_TABLE_ID: ${{ secrets.FEISHU_PWD_TABLE_ID }}
           FAMILY_NAME_TAG: ${{ secrets.FAMILY_NAME_TAG }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
         run: |
-          python sync_feishu_data.py
+          python sync_feishu_data.py --enable-agent
 
-      - name: 5. 自动提交并推送变动到仓库
+      - name: 5. 自动提交 Agent 生成的索引与变动
         env:
           SUPER_TOKEN: ${{ secrets.MY_SUPER_TOKEN }}
         run: |
-          # 🔥 彻底放弃默认机器人，直接锁定为您个人的 GitHub 账号与专属虚拟邮箱
-          git config --local user.name "Fengzd45"
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "Family-AI-Agent"
+          git config --local user.email "agent@family.local"
           
-          # 强行刷新 Git 索引，确保精准捕获文件的细微文本变动
           git diff > /dev/null 2>&1
           
           if [ -n "$(git status --porcelain)" ]; then
-            echo "==== 💾 检测到数据有变动，开始准备提交 ===="
+            echo "==== 💾 检测到数据或 AI 诊断有变动，开始提交 ===="
             git add .
-            git commit -m "飞书即时同步: 家族档案更新 [skip ci]"
-            
-            # 🔥 核心锁钥：先拉取远程最新状态进行变动融合，防止指针打架
+            git commit -m "🤖 AI Agent: 飞书数据同步与关系链智能校验 [skip ci]"
             git pull --rebase origin main
-            
-            # 使用您的超级 Token 强推，确保拥有最高写入权限
             git push "https://x-access-token:${SUPER_TOKEN}@github.com/${{ github.repository }}.git" HEAD:main
-            echo "==== 🎉 成功！新数据已顺利以 Fengzd45 身份写入仓库 ===="
+            echo "==== 🎉 成功提交到仓库 ===="
           else
-            echo "==== ℹ️ 没有检测到任何文件变动，跳过本次提交。 ===="
+            echo "==== ℹ️ 未检测到文件变动，跳过提交。 ===="
           fi
