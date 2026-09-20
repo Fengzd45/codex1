@@ -880,7 +880,6 @@ function renderNaturalQueryResult(result) {
             speakText = `${result.startName} 的 ${result.stepText} 是：` + result.names.join('、');
         }
     } else if (result.type === 'cross') {
-        // ★ 改进：始终显示两侧的描述性标签，即使只有一组关系
         const leftLabel = escapeHtml(result.leftDesc);
         const rightLabel = escapeHtml(result.rightDesc);
         if (result.pairs.length === 1) {
@@ -895,6 +894,9 @@ function renderNaturalQueryResult(result) {
             speakText = `${result.leftDesc} 和 ${result.rightDesc} 共 ${result.pairs.length} 组关系：` +
                 result.pairs.map(p => `${p.b} 是 ${p.a} 的 ${p.relation}`).join('；');
         }
+    } else if (result.type === 'unsupported') {
+        html += `<pre>⚠️ 暂不支持此类查询\n${escapeHtml(result.message)}</pre>`;
+        speakText = result.message;
     }
     outputPre.innerHTML = html;
     bindClickableNames();
@@ -909,12 +911,11 @@ function runNaturalQuery(text) {
 const IR_SYSTEM_PROMPT = `你是一个"家谱问句翻译器"。你的唯一任务是：把用户的中文家谱问句翻译成一个 JSON 对象。
 你不需要回答问题，不需要解释，不需要调用任何工具，只输出 JSON。
 
-【输出格式】只允许下面四种 type 之一：
+【输出格式】只允许下面几种 type：
 
 1) 两人关系（两个都是具体人名）：
    {"type":"pair","a":"姓名A","b":"姓名B"}
    例："冯宗德和张三是什么关系" → {"type":"pair","a":"冯宗德","b":"张三"}
-   例："冯宗德该叫李四什么" → {"type":"pair","a":"冯宗德","b":"李四"}
 
 2) 单人完整关系树（只提到一个姓名，没有具体关系词）：
    {"type":"tree","person":"姓名"}
@@ -923,24 +924,27 @@ const IR_SYSTEM_PROMPT = `你是一个"家谱问句翻译器"。你的唯一任�
 3) 某人某类亲属是谁（一层称呼词）：
    {"type":"query","person":"姓名","relTerm":"称呼词"}
    例："冯宗德的表弟是谁" → {"type":"query","person":"冯宗德","relTerm":"表弟"}
-   也可以用多步原子关系链代替 relTerm：
-   {"type":"query","person":"姓名","path":["father","mother"]}
+   
+   如果关系词超过一个（例如"父亲的母亲"、"儿子的外婆"），**必须**翻译成多步 path 数组，严禁拼成一长串字符串传给 relTerm！
+   例："冯宗德的父亲的母亲" → {"type":"query","person":"冯宗德","path":["father","mother"]}
+   例："冯宗德的儿子的外婆" → {"type":"query","person":"冯宗德","path":["sons","mother","mother"]}
    原子词只有这些：father, mother, spouse, sons, daughters, children, siblings, older_brothers, younger_brothers, older_sisters, younger_sisters
-   常见映射："老丈人"/"岳父" = ["spouse","father"]；"岳母"/"丈母娘" = ["spouse","mother"]；"公公" = ["spouse","father"]；"婆婆" = ["spouse","mother"]；"父亲的母亲" = ["father","mother"]
+   常见映射："老丈人"/"岳父" = ["spouse","father"]；"岳母"/"丈母娘" = ["spouse","mother"]；"公公" = ["spouse","father"]；"婆婆" = ["spouse","mother"]
 
 4) 两人的某类亲属之间的关系（两侧都是"某人的某类亲属"，不是具体人名）：
    {"type":"relation_between","left":{"person":"姓名A","relTerm":"儿子"},"right":{"person":"姓名B","relTerm":"母亲"}}
+   左侧/右侧也可以用 path 代替 relTerm。如果某一侧是具体人名，那一侧只填 person。
    例："冯宗德的儿子和冯宗流的母亲是什么关系" → {"type":"relation_between","left":{"person":"冯宗德","relTerm":"儿子"},"right":{"person":"冯宗流","relTerm":"母亲"}}
-   左侧/右侧也可以用 path 代替 relTerm，规则同 type=3。
-   如果某一侧是具体人名而不是描述（如"冯宗德的儿子和张三是什么关系"），那一侧只填 person，不填 relTerm/path。
+   例："冯宗德的堂兄和冯宗德的表弟是什么" → {"type":"relation_between","left":{"person":"冯宗德","relTerm":"堂兄"},"right":{"person":"冯宗德","relTerm":"表弟"}}
+
+5) 反向查询（如"谁称呼A为B"）：
+   系统不支持反向查询。遇到此类问题，请输出：
+   {"type":"unsupported","message":"暂不支持反向查询，请尝试正向查询（例如'A叫B什么'）"}
+   例："谁称呼冯宗德为姑父？" → {"type":"unsupported","message":"暂不支持反向查询，请尝试正向查询（例如'冯宗德叫谁姑父'）"}
 
 【关键规则 — 必须严格遵守】
-- 姓名是"具体人名"：通常是 2-4 个汉字，是家谱里真实存在的一个人。a/b/person 字段只能放具体人名。
-- "XX的YY" 这种描述短语（例如"冯宗德的儿子"）绝不能整体塞进 person 字段。
-- 判断依据是"问句里提到了几个描述对象"：
-  · 只提到一个人名 → type=tree 或 type=query
-  · 提到"某人的某类亲属 + 另一个具体人名" → type=pair
-  · 提到"某人的某类亲属 + 另一人的某类亲属" → type=relation_between
+- 姓名是"具体人名"：a/b/person 字段只能放具体人名。
+- **多步关系必须使用 path 数组**。只要出现两个以上的"的"修饰（如"冯宗德的儿子的外婆"），严禁把它们拼成一个长字符串传给 relTerm！必须拆分成 path 数组。
 - 只输出 JSON，不要 markdown 代码块，不要任何前后缀文字。
 
 现在请把下面用户的话翻译成 JSON。`;
@@ -1013,6 +1017,9 @@ function execIR(ir) {
             }
             if (pairs.length === 0) return { ok: false, message: `两侧都解析成功（${setA.desc} / ${setB.desc}），但两两之间没能算出可推导的关系。` };
             return { ok: true, type: 'cross', leftDesc: setA.desc, rightDesc: setB.desc, pairs };
+        }
+        case 'unsupported': {
+            return { ok: false, type: 'unsupported', message: ir.message || '暂不支持此类查询。' };
         }
         default:
             return { ok: false, message: `不认识的 IR 类型："${ir.type}"` };
