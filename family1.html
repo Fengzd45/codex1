@@ -1749,7 +1749,11 @@ async function aiCallAgent(text) {
     if (!apiKey) throw new Error('尚未配置 API Key');
     const names = Object.keys(peopleData || {});
     const sampleNames = names.slice(0, 30).join('、');
-    const systemPrompt = `你是一个家谱查询助手。家谱里共有${names.length}位人物，部分姓名示例：${sampleNames}${names.length > 30 ? ' 等' : ''}。
+    const systemPrompt = `你是一个家谱查询助手，你自己并不认识家谱里的任何一个人，唯一能了解家谱内容的办法就是调用下面这些工具——工具会去查真实数据并把结果告诉你。
+家谱里一共有${names.length}位人物，数量较多没法在这里全部列出，下面只是随手挑的${Math.min(30,names.length)}个例子，帮你理解姓名大致长什么样：${sampleNames}${names.length > 30 ? ' 等，此外还有大量未列出的姓名' : ''}。
+
+【极其重要，必须遵守】用户问题里提到的姓名，不管你觉得"眼熟"还是"没听说过"，都绝对不能凭你自己的印象或者上面那份不完整的示例名单去判断这个人存不存在、这段关系合不合理——你看到的示例只是极小一部分，绝大多数真实姓名根本不会出现在示例里。任何时候只要问题里提到了具体人名和亲属称呼，都必须先调用工具去查，工具会用真实家谱数据准确告诉你这个人存不存在、查询结果是什么；只有工具明确返回"不在家谱中"之后，才能认定这个人不存在。禁止在没有调用任何工具的情况下，直接用文字回复说某人"未在家谱中""无法确认存在"。
+
 请根据用户的自然语言问题，判断应该调用下面哪个工具、传入哪些参数：
 - 问"A和B是什么关系"或"A该叫B什么" → query_pair_relation
 - 问"A的表弟/叔叔/侄女/xxx是谁/都有谁"（只有一层称呼词）→ query_persons_by_relation
@@ -1762,9 +1766,9 @@ async function aiCallAgent(text) {
 - 问"A上三辈/上两辈/上一辈都有谁""A下三辈/下一辈是哪些人" → query_generation，direction填up(上/祖先方向)或down(下/后代方向)，generations填数字（"上三辈"=3，"下一辈"=1）
 - 只提到一个人名、没有任何称呼词、想看完整家族关系 → query_full_tree
 
-重要：如果问题里出现"XX的YY和ZZ的关系"这种复合问法（先用一个称呼描述指代一个具体的人，再问这个人和另一个人的关系），姓名参数必须是家谱里真实存在的姓名，不能把"XX的YY"这种描述短语原样当作姓名传给工具。正确做法是分两步：第一步先调用合适的工具（比如query_persons_by_relation或query_relation_chain）把"XX的YY"具体解析成一个真实姓名，我会把结果返回给你；第二步你再用这个真实姓名调用query_pair_relation等工具算出最终答案。每次工具调用后我都会把结果发给你，你可以根据需要继续调用下一个工具，直到能给出确定答案为止。
+如果问题里出现"XX的YY和ZZ的关系"这种复合问法（先用一个称呼描述指代一个具体的人，再问这个人和另一个人的关系），姓名参数必须是家谱里真实存在的姓名，不能把"XX的YY"这种描述短语原样当作姓名传给工具。正确做法是分两步：第一步先调用合适的工具（比如query_persons_by_relation或query_relation_chain）把"XX的YY"具体解析成一个真实姓名，我会把结果返回给你；第二步你再用这个真实姓名调用query_pair_relation等工具算出最终答案。每次工具调用后我都会把结果发给你，你可以根据需要继续调用下一个工具，直到能给出确定答案为止。
 
-姓名和称呼词都要从用户原话里提取，不要编造家谱中不存在的姓名或关系。如果问题和家谱查询完全无关，直接用文字回复，不要调用工具。`;
+姓名和称呼词都要从用户原话里提取，不要编造家谱中不存在的姓名或关系。只有问题明显和家谱、亲属关系完全无关（比如打招呼、问天气）时，才可以不调用工具、直接用文字回复。`;
 
     let messages = [
         { role: 'system', content: systemPrompt },
@@ -1784,7 +1788,9 @@ async function aiCallAgent(text) {
                 model,
                 messages,
                 tools: FAMILY_TOOLS,
-                tool_choice: 'auto'
+                // 第一轮强制要求模型必须调用一个工具，不允许它跳过查询直接凭印象下结论；
+                // 后续轮次改回auto，让模型自己判断信息是否已经够用、要不要继续查。
+                tool_choice: step === 0 ? 'required' : 'auto'
             })
         });
         if (!resp.ok) {
