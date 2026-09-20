@@ -1789,14 +1789,21 @@ async function aiCallAgent(text) {
 问题："冯某的儿子和王某是什么关系"
 第1步：调用 query_persons_by_relation(name="冯某", relTerm="儿子")，假设返回 names:["冯小某"]
 第2步：这里"冯某的儿子"已经被解析成了具体的人"冯小某"，所以必须调用 query_pair_relation(nameA="冯小某", nameB="王某")——注意nameA传的是上一步查到的"冯小某"，不是"冯某"！如果这里又把"冯某"传进去，那问的就变成了"冯某和王某的关系"，完全答非所问。
-第3步：调用 finish_answer 结束。`;
+第3步：调用 finish_answer 结束。
+
+再举一个更容易漏掉的例子——两边都需要先解析的情况，比如问题："A的儿子和B的母亲是什么关系"：
+第1步：解析"A的儿子"，调用 query_persons_by_relation(name="A", relTerm="儿子") 或 query_relation_chain(name="A", steps=["sons"])，假设得到"A2"
+第2步：不要急着去算关系！还有另一侧"B的母亲"也是个需要推导的描述，同样必须先解析：调用 query_persons_by_relation(name="B", relTerm="母亲") 或 query_relation_chain(name="B", steps=["mother"])，假设得到"B2"
+第3步：两侧都解析成具体姓名之后，才调用 query_pair_relation(nameA="A2", nameB="B2")
+第4步：调用 finish_answer 结束
+核心原则：检查问题里的两侧（不只是第一侧），只要某一侧不是家谱里现成的姓名而是需要推导的描述短语，就必须先把它单独解析成具体姓名，两侧都要检查到，不能因为先处理完一侧就忘了另一侧。`;
 
     let messages = [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: text }
     ];
     let lastToolResult = null;
-    const MAX_STEPS = 4;
+    const MAX_STEPS = 6;
 
     for (let step = 0; step < MAX_STEPS; step++) {
         const resp = await fetch(baseUrl, {
