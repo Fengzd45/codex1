@@ -1707,6 +1707,19 @@ const FAMILY_TOOLS = [
     }
 ];
 
+// “完成”工具：不查任何数据，只是模型用来明确表示“我已经拿到能回答用户问题的最终结果了”。
+// 让模型必须显式调用它来结束多轮推理，而不是靠它自己“悄悄不调用工具了”来判断是否结束——
+// 后者在弱模型上很不可靠，经常在拿到中间结果后就提前停住。
+const AI_FINISH_TOOL = {
+    type: 'function',
+    function: {
+        name: 'finish_answer',
+        description: '当你已经通过前面调用的工具拿到了足以回答用户原始问题的最终结果时，调用这个来结束整个查询流程（不需要传任何参数）。如果只是拿到了一个中间结果（比如只解析出了某个人是谁，但用户问的是这个人和另一个人的关系，还没算出关系），不要调用这个，应该继续调用其它工具算出最终结果。',
+        parameters: { type: 'object', properties: {} }
+    }
+};
+const AI_TOOLS_WITH_FINISH = [...FAMILY_TOOLS, AI_FINISH_TOOL];
+
 function aiRunTool(name, args) {
     args = args || {};
     switch (name) {
@@ -1768,7 +1781,9 @@ async function aiCallAgent(text) {
 
 如果问题里出现"XX的YY和ZZ的关系"这种复合问法（先用一个称呼描述指代一个具体的人，再问这个人和另一个人的关系），姓名参数必须是家谱里真实存在的姓名，不能把"XX的YY"这种描述短语原样当作姓名传给工具。正确做法是分两步：第一步先调用合适的工具（比如query_persons_by_relation或query_relation_chain）把"XX的YY"具体解析成一个真实姓名，我会把结果返回给你；第二步你再用这个真实姓名调用query_pair_relation等工具算出最终答案。每次工具调用后我都会把结果发给你，你可以根据需要继续调用下一个工具，直到能给出确定答案为止。
 
-姓名和称呼词都要从用户原话里提取，不要编造家谱中不存在的姓名或关系。只有问题明显和家谱、亲属关系完全无关（比如打招呼、问天气）时，才可以不调用工具、直接用文字回复。`;
+姓名和称呼词都要从用户原话里提取，不要编造家谱中不存在的姓名或关系。
+
+【关于结束】你每一轮都必须调用一个工具，不能什么都不调用。当你已经通过前面工具返回的结果拿到了能回答用户原始问题的最终答案时，调用 finish_answer 工具来结束整个流程——注意"拿到中间结果"和"拿到最终答案"是两回事：比如用户问"A的儿子和B是什么关系"，你先调用工具查出"A的儿子是谁"，这只是中间结果，绝对不能这时候就调用finish_answer，必须紧接着再调用query_pair_relation算出这个人和B的关系，算出关系之后才能调用finish_answer。只有当问题明显和家谱、亲属关系完全无关（比如打招呼、问天气）时，才可以直接调用finish_answer而不查任何数据。`;
 
     let messages = [
         { role: 'system', content: systemPrompt },
@@ -1787,10 +1802,11 @@ async function aiCallAgent(text) {
             body: JSON.stringify({
                 model,
                 messages,
-                tools: FAMILY_TOOLS,
-                // 第一轮强制要求模型必须调用一个工具，不允许它跳过查询直接凭印象下结论；
-                // 后续轮次改回auto，让模型自己判断信息是否已经够用、要不要继续查。
-                tool_choice: step === 0 ? 'required' : 'auto'
+                tools: AI_TOOLS_WITH_FINISH,
+                // 每一轮都强制模型必须调用一个工具：真正查数据的工具，或者表示“结束”的 finish_answer。
+                // 不能让它靠“不调用任何工具”来隐式表示结束——这个信号在弱模型上很不可靠，
+                // 经常刚拿到中间结果就误以为已经答完了。
+                tool_choice: 'required'
             })
         });
         if (!resp.ok) {
@@ -1802,13 +1818,17 @@ async function aiCallAgent(text) {
         if (!msg) throw new Error('接口返回格式异常');
 
         if (!msg.tool_calls || msg.tool_calls.length === 0) {
-            // 模型没有再调用工具：如果之前已经执行过工具，就用最后一次工具结果渲染；
-            // 如果第一轮就没调用工具，说明模型觉得不需要查家谱，直接把它的文字回复展示出来。
+            // 理论上 tool_choice: 'required' 下不该走到这里，兜底处理一下。
             if (lastToolResult) return lastToolResult;
             return { ok: false, message: msg.content || '模型没能理解这个问题，换个说法试试。' };
         }
 
         const call = msg.tool_calls[0];
+        if (call.function.name === 'finish_answer') {
+            // 模型明确表示“已经算完了”，用它前面最后一次真正查询工具的结果作为最终答案。
+            if (lastToolResult) return lastToolResult;
+            return { ok: false, message: '模型认为已经完成，但之前没有成功查到任何数据。' };
+        }
         let args = {};
         try { args = JSON.parse(call.function.arguments || '{}'); } catch (e) { /* 忽略解析失败，走默认空参数 */ }
         const toolResult = aiRunTool(call.function.name, args);
