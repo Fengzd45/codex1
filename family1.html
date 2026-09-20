@@ -98,6 +98,7 @@
         .stat-summary { background: #f0e8d8; border-radius: 20px; padding: 8px 16px; margin-bottom: 16px; display: inline-block; font-size: 0.85rem; }
 
         #mediaModal { z-index: 1001; }
+        .debug-banner { font-size:0.7rem; color:#888; background:#f0e8d8; padding:6px 10px; border-radius:8px; margin-bottom:10px; word-break:break-all; }
     </style>
 </head>
 <body>
@@ -903,43 +904,51 @@ function bindClickableNames() {
     });
 }
 function renderNaturalQueryResult(result) {
+    // ★ 拼一段"模型理解"的调试信息，附在结果上方
+    let debugBanner = '';
+    if (window._lastIR) {
+        const irStr = JSON.stringify(window._lastIR);
+        debugBanner = `<div class="debug-banner">🔍 模型理解：${escapeHtml(irStr)}</div>`;
+        window._lastIR = null;
+        window._lastRawContent = null;
+    }
     if (!result || !result.ok) {
         const msg = (result && result.message) || '查询失败。';
-        outputPre.innerHTML = `<pre>❌ ${escapeHtml(msg)}</pre>`;
+        outputPre.innerHTML = debugBanner + `<pre>❌ ${escapeHtml(msg)}</pre>`;
         return msg;
     }
-    let html = '', speakText = '';
+    let html = debugBanner, speakText = '';
     if (result.type === 'pair') {
-        html = `<pre>========== 两人关系 ==========\n${makeClickableName(result.nameA)} 称 ${makeClickableName(result.nameB)} 为「${escapeHtml(result.relation)}」</pre>`;
+        html += `<pre>========== 两人关系 ==========\n${makeClickableName(result.nameA)} 称 ${makeClickableName(result.nameB)} 为「${escapeHtml(result.relation)}」</pre>`;
         speakText = `${result.nameA} 称 ${result.nameB} 为 ${result.relation}`;
     } else if (result.type === 'byrel') {
         const lines = result.matches.map(m => `  ${makeClickableName(m.name)}`).join('\n');
-        html = `<pre>========== ${escapeHtml(result.name)} 的「${escapeHtml(result.relTerm)}」（共${result.matches.length}人） ==========\n${lines}</pre>`;
+        html += `<pre>========== ${escapeHtml(result.name)} 的「${escapeHtml(result.relTerm)}」（共${result.matches.length}人） ==========\n${lines}</pre>`;
         speakText = `${result.name} 的 ${result.relTerm} 共 ${result.matches.length} 人：` + result.matches.map(m => m.name).join('、');
     } else if (result.type === 'full') {
         const relations = bfsRelationships(result.name, peopleData);
         const outputText = printRelationshipsWithClick(result.name, relations, peopleData);
-        html = `<pre>========== 从 ${escapeHtml(result.name)} 出发的家族关系树 ==========\n${outputText}</pre>`;
+        html += `<pre>========== 从 ${escapeHtml(result.name)} 出发的家族关系树 ==========\n${outputText}</pre>`;
         speakText = `已列出 ${result.name} 的完整家族关系树，请查看屏幕。`;
     } else if (result.type === 'chain') {
         if (result.names.length === 0) {
-            html = `<pre>========== 关系链查询 ==========\n${escapeHtml(result.startName)} 的 ${escapeHtml(result.stepText)}：没有找到符合条件的人。</pre>`;
+            html += `<pre>========== 关系链查询 ==========\n${escapeHtml(result.startName)} 的 ${escapeHtml(result.stepText)}：没有找到符合条件的人。</pre>`;
             speakText = `没有找到 ${result.startName} 的 ${result.stepText}。`;
         } else {
             const lines = result.names.map(n => `  ${makeClickableName(n)}`).join('\n');
-            html = `<pre>========== 关系链查询 ==========\n${escapeHtml(result.startName)} 的 ${escapeHtml(result.stepText)}（共${result.names.length}人） ==========\n${lines}</pre>`;
+            html += `<pre>========== 关系链查询 ==========\n${escapeHtml(result.startName)} 的 ${escapeHtml(result.stepText)}（共${result.names.length}人） ==========\n${lines}</pre>`;
             speakText = `${result.startName} 的 ${result.stepText} 是：` + result.names.join('、');
         }
     } else if (result.type === 'cross') {
         if (result.pairs.length === 1) {
             const p = result.pairs[0];
-            html = `<pre>========== 两人关系 ==========\n${makeClickableName(p.a)} 称 ${makeClickableName(p.b)} 为「${escapeHtml(p.relation)}」</pre>`;
+            html += `<pre>========== 两人关系 ==========\n${makeClickableName(p.a)} 称 ${makeClickableName(p.b)} 为「${escapeHtml(p.relation)}」</pre>`;
             speakText = `${p.a} 称 ${p.b} 为 ${p.relation}`;
         } else {
             const lines = result.pairs.map(p =>
                 `  ${makeClickableName(p.a)} 称 ${makeClickableName(p.b)} 为「${escapeHtml(p.relation)}」`
             ).join('\n');
-            html = `<pre>========== ${escapeHtml(result.leftDesc)} 和 ${escapeHtml(result.rightDesc)}（共${result.pairs.length}组） ==========\n${lines}</pre>`;
+            html += `<pre>========== ${escapeHtml(result.leftDesc)} 和 ${escapeHtml(result.rightDesc)}（共${result.pairs.length}组） ==========\n${lines}</pre>`;
             speakText = `${result.leftDesc} 和 ${result.rightDesc} 共 ${result.pairs.length} 组关系：` +
                 result.pairs.map(p => `${p.b} 是 ${p.a} 的 ${p.relation}`).join('；');
         }
@@ -1115,7 +1124,40 @@ async function aiCallAgent(text) {
         throw new Error('模型输出不是合法 JSON：' + content.slice(0, 200));
     }
     console.log('🤖 IR:', ir);
+    window._lastRawContent = content;   // ★ 记录模型原始输出，方便看
+    window._lastIR = ir;                // ★ 记录解析后的 IR，方便看
     return execIR(ir);
+}
+
+// ★ 确定性规则：识别"A的X和B的Y"句型，绕过 LLM
+function tryParseTwoDescriptions(text) {
+    if (!peopleData) return null;
+    // 只处理带"和/跟/与"的句子
+    const parts = text.split(/[和跟与]/);
+    if (parts.length !== 2) return null;
+    const names = Object.keys(peopleData).sort((a, b) => b.length - a.length);
+    const parseSide = (s) => {
+        for (const n of names) {
+            const idx = s.indexOf(n);
+            if (idx === -1) continue;
+            // 检查姓名后面是否紧跟"的XXX"
+            const after = s.slice(idx + n.length);
+            const m = after.match(/^的([^\s，,。.？?！!]+?)(?:是|有|什么|谁|多少|几个|哪些|$)/);
+            if (m) {
+                let relTerm = m[1].replace(/[的是谁有哪些？?，,。.\s]/g, '').trim();
+                if (relTerm) return { person: n, relTerm };
+            }
+            // 姓名后面没跟"的XXX"，这一侧就是纯人名
+            return { person: n };
+        }
+        return null;
+    };
+    const left = parseSide(parts[0]);
+    const right = parseSide(parts[1]);
+    if (left && right && (left.relTerm || right.relTerm)) {
+        return { type: 'relation_between', left, right };
+    }
+    return null;
 }
 
 async function runNaturalQueryAgent(text) {
@@ -1127,6 +1169,20 @@ async function runNaturalQueryAgent(text) {
         console.log('语音纠错：「' + text + '」→「' + correctedText + '」');
         text = correctedText;
     }
+
+    // ★ 先试确定性规则：命中"A的X和B的Y"就绕过 AI
+    const ruleIR = tryParseTwoDescriptions(text);
+    if (ruleIR) {
+        console.log('📐 规则命中 IR:', ruleIR);
+        window._lastIR = ruleIR;   // 也用 debugBanner 显示，方便你对比
+        const result = execIR(ruleIR);
+        const speakText = renderNaturalQueryResult(result);
+        if (document.getElementById('ttsToggle').checked) {
+            speak(speakText || (result && result.message) || '');
+        }
+        return;
+    }
+
     if (!AGENT_CONFIG.enabled) {
         runNaturalQuery(text);
         return;
