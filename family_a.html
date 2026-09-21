@@ -108,7 +108,7 @@ details.manual summary{cursor:pointer;font-weight:bold;color:#8b5a2b}
       </div>
       <div class="input-area">
         <input type="text" id="relFromName" placeholder="姓名" disabled>
-        <input type="text" id="relTerm" placeholder="称呼词" disabled>
+        <input type="text" id="relTerm" placeholder="称呼词，如：舅" disabled>
         <button id="relSearchBtn" class="stat-btn" disabled>🔎 按称呼找人</button>
       </div>
     </details>
@@ -175,12 +175,58 @@ function parseJsonl(text) {
 }
 function escapeHtml(s) { return !s ? '' : s.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
 
-// ==================== 工具实现（模型可调用的原子操作）====================
+// ==================== 关系称谓别名表（★ 本次新增）====================
+const RELATION_ALIASES = {
+  '爸爸':'父亲','爸':'父亲','爹':'父亲','老爸':'父亲','家父':'父亲',
+  '妈妈':'母亲','妈':'母亲','娘':'母亲','老妈':'母亲','家母':'母亲',
+  '老婆':'配偶','妻子':'配偶','老公':'配偶','丈夫':'配偶',
+  '爷爷':'祖父','阿公':'祖父','奶奶':'祖母','阿嬷':'祖母',
+  '外公':'外祖父','姥爷':'外祖父','外婆':'外祖母','姥姥':'外祖母',
+  '舅舅':'舅父','舅':'舅父',
+  '舅妈':'舅母','舅母':'舅母',
+  '姨妈':'姨母','姨':'姨母','姨娘':'姨母',
+  '姨丈':'姨父','姨父':'姨父',
+  '姑姑':'姑母','姑妈':'姑母','姑':'姑母',
+  '叔叔':'叔父','叔':'叔父',
+  '伯伯':'伯父','大伯':'伯父','大爷':'伯父',
+  '哥哥':'兄','哥':'兄','大哥':'兄',
+  '弟弟':'弟',
+  '姐姐':'姐','姐':'姐',
+  '妹妹':'妹','妹':'妹',
+  '儿媳妇':'儿媳','媳妇':'儿媳',
+  '姑爷':'女婿',
+  '侄子':'侄子','侄儿':'侄子','侄女':'侄女',
+  '外甥':'外甥','外甥女':'外甥女',
+  '孙子':'孙子','孙':'孙子','孙女':'孙女',
+  '曾孙':'曾孙','重孙':'曾孙','曾孙女':'曾孙女','重孙女':'曾孙女',
+};
+
+const RELATION_AMBIGUOUS = {
+  '表哥':['姑表兄','舅表兄','姨表兄'],
+  '表兄':['姑表兄','舅表兄','姨表兄'],
+  '表弟':['姑表弟','舅表弟','姨表弟'],
+  '表姐':['姑表姐','舅表姐','姨表姐'],
+  '表妹':['姑表妹','舅表妹','姨表妹'],
+  '表兄弟':['姑表兄弟','舅表兄弟','姨表兄弟','姑表兄','姑表弟','舅表兄','舅表弟','姨表兄','姨表弟'],
+  '表姐妹':['姑表姐妹','舅表姐妹','姨表姐妹','姑表姐','姑表妹','舅表姐','舅表妹','姨表姐','姨表妹'],
+  '堂哥':['堂兄'],'堂弟':['堂弟'],'堂姐':['堂姐'],'堂妹':['堂妹'],
+  '堂兄弟':['堂兄','堂弟','堂兄弟'],
+  '堂姐妹':['堂姐','堂妹','堂姐妹'],
+};
+
+function resolveRelationCandidates(term) {
+  term = (term || '').trim();
+  if (!term) return [];
+  if (RELATION_AMBIGUOUS[term]) return RELATION_AMBIGUOUS[term];
+  if (RELATION_ALIASES[term]) return [RELATION_ALIASES[term]];
+  return [term];
+}
+
+// ==================== 工具实现 ====================
 function toolFindPerson(query) {
   if (!query || !peopleData) return { ok: false, error: '缺少查询参数' };
   query = String(query).trim();
   if (peopleData[query]) return { ok: true, matches: [query], note: '精确匹配' };
-  // 拼音匹配
   try {
     const qp = pinyinPro.pinyin(query, { toneType: 'none', type: 'array' }).join('').toLowerCase();
     const matches = [];
@@ -197,15 +243,9 @@ function toolGetPersonInfo(name) {
   const p = peopleData[name];
   if (!p) return { ok: false, error: `"${name}" 不在家谱中` };
   return {
-    ok: true,
-    name: p.name,
-    sex: p.sex,
-    birthYear: p.birthYear,
-    father: p.father || null,
-    mother: p.mother || null,
-    spouse: p.spouse.slice(),
-    children: p.children.map(c => c.name),
-    info: p.info || ''
+    ok: true, name: p.name, sex: p.sex, birthYear: p.birthYear,
+    father: p.father || null, mother: p.mother || null,
+    spouse: p.spouse.slice(), children: p.children.map(c => c.name), info: p.info || ''
   };
 }
 
@@ -240,7 +280,6 @@ function cmpBirth(a, b) {
   return 0;
 }
 
-// BFS 找两人关系
 function bfsRelationships(startName) {
   const start = peopleData[startName];
   if (!start) return {};
@@ -258,7 +297,6 @@ function bfsRelationships(startName) {
   return visited;
 }
 
-// 关系称谓推导
 const SPOUSE_MAP = new Map();
 [
   ["兄","男","嫂"],["弟","男","弟媳"],["姐","女","姐夫"],["妹","女","妹夫"],
@@ -436,7 +474,6 @@ function toolFindCommonAncestor(a, b) {
   return { ok: true, a, b, nearest_ancestor: common[0].name, distance_from_a: common[0].dA, distance_from_b: common[0].dB, all_common: common.slice(0, 5).map(x => x.name) };
 }
 
-// ==================== 工具执行器 ====================
 function executeTool(name, args) {
   try {
     switch (name) {
@@ -452,92 +489,16 @@ function executeTool(name, args) {
   }
 }
 
-// ==================== 工具定义（OpenAI 格式）====================
+// ==================== 工具定义 ====================
 const AGENT_TOOLS = [
-  {
-    type: 'function',
-    function: {
-      name: 'find_person',
-      description: '按姓名或拼音在家谱中查找一个人，返回所有匹配到的规范姓名。当你不确定某个人名的准确写法时使用。',
-      parameters: {
-        type: 'object',
-        properties: { query: { type: 'string', description: '姓名或拼音' } },
-        required: ['query']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'get_person_info',
-      description: '获取某人的基础信息：性别、出生年、父母、配偶、子女。当你想了解一个人的家庭结构时使用。',
-      parameters: {
-        type: 'object',
-        properties: { name: { type: 'string', description: '家谱中的规范姓名' } },
-        required: ['name']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'get_relatives',
-      description: '获取某人的一类亲属。relation_type 可选：father（父亲）、mother（母亲）、spouse（配偶）、sons（儿子）、daughters（女儿）、children（所有子女）、older_brothers（哥哥）、younger_brothers（弟弟）、older_sisters（姐姐）、younger_sisters（妹妹）、siblings（所有兄弟姐妹）。',
-      parameters: {
-        type: 'object',
-        properties: {
-          name: { type: 'string', description: '家谱中的规范姓名' },
-          relation_type: { type: 'string', enum: ['father','mother','spouse','sons','daughters','children','older_brothers','younger_brothers','older_sisters','younger_sisters','siblings'] }
-        },
-        required: ['name', 'relation_type']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'describe_relation',
-      description: '判断 A 应该称呼 B 为什么。A 和 B 都必须是家谱中的具体人名。',
-      parameters: {
-        type: 'object',
-        properties: {
-          a: { type: 'string', description: '称呼方（家谱中的规范姓名）' },
-          b: { type: 'string', description: '被称呼方（家谱中的规范姓名）' }
-        },
-        required: ['a', 'b']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'find_common_ancestor',
-      description: '查找两个人的最近共同祖先。',
-      parameters: {
-        type: 'object',
-        properties: {
-          a: { type: 'string', description: '第一个人的姓名' },
-          b: { type: 'string', description: '第二个人的姓名' }
-        },
-        required: ['a', 'b']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'finish_answer',
-      description: '当你已经通过前面的工具调用获得了足以回答用户问题的信息时，调用这个工具结束整个流程，并传入给用户的最终答案文本。如果还没获得足够信息，不要调用。',
-      parameters: {
-        type: 'object',
-        properties: { answer: { type: 'string', description: '给用户的最终答案（简洁、清晰、口语化）' } },
-        required: ['answer']
-      }
-    }
-  }
+  { type: 'function', function: { name: 'find_person', description: '按姓名或拼音在家谱中查找一个人，返回所有匹配到的规范姓名。', parameters: { type: 'object', properties: { query: { type: 'string', description: '姓名或拼音' } }, required: ['query'] } } },
+  { type: 'function', function: { name: 'get_person_info', description: '获取某人的基础信息：性别、出生年、父母、配偶、子女。', parameters: { type: 'object', properties: { name: { type: 'string', description: '家谱中的规范姓名' } }, required: ['name'] } } },
+  { type: 'function', function: { name: 'get_relatives', description: '获取某人的一类亲属。relation_type 可选：father, mother, spouse, sons, daughters, children, older_brothers, younger_brothers, older_sisters, younger_sisters, siblings。', parameters: { type: 'object', properties: { name: { type: 'string' }, relation_type: { type: 'string', enum: ['father','mother','spouse','sons','daughters','children','older_brothers','younger_brothers','older_sisters','younger_sisters','siblings'] } }, required: ['name','relation_type'] } } },
+  { type: 'function', function: { name: 'describe_relation', description: '判断 A 应该称呼 B 为什么。A 和 B 都必须是家谱中的具体人名。', parameters: { type: 'object', properties: { a: { type: 'string' }, b: { type: 'string' } }, required: ['a','b'] } } },
+  { type: 'function', function: { name: 'find_common_ancestor', description: '查找两个人的最近共同祖先。', parameters: { type: 'object', properties: { a: { type: 'string' }, b: { type: 'string' } }, required: ['a','b'] } } },
+  { type: 'function', function: { name: 'finish_answer', description: '当你已经通过前面的工具调用获得了足以回答用户问题的信息时，调用这个工具结束整个流程，并传入给用户的最终答案文本。', parameters: { type: 'object', properties: { answer: { type: 'string' } }, required: ['answer'] } } }
 ];
 
-// ==================== Agent 系统提示词（描述"是什么"而非"怎么拆"）====================
 const AGENT_SYSTEM_PROMPT = `你是一个家族关系查询 Agent。你的任务是帮助用户解答关于一个家谱中人物关系的问题。
 
 【你的能力】
@@ -553,13 +514,13 @@ const AGENT_SYSTEM_PROMPT = `你是一个家族关系查询 Agent。你的任务
 【重要原则】
 - 同一个工具可以调用多次，参数不同，结果也不同。
 - 比如"堂兄"这个概念，你需要自己拆解：先查这个人的父亲，再查父亲的兄弟姐妹，再查这些兄弟姐妹的儿子，然后根据性别和年龄判断谁是"堂兄"。不要指望有一个现成的"堂兄"工具。
-- 如果你调用的工具返回"未找到"或"不存在"，可以尝试换一种方法（比如用 find_person 做拼音匹配）。
+- 如果你调用的工具返回"未找到"或"不存在"，可以尝试换一种方法。
 - 不要重复调用参数完全相同的工具，那会浪费时间。
 - 如果尝试了几种方法都查不到，调用 finish_answer 如实告诉用户"没有找到相关信息"或"家谱中缺少相关数据"。
 
 【关于亲属称谓的知识】（供你参考，但你要自己规划路径）
 - 直系：父亲、母亲、儿子、女儿、祖父、祖母、外祖父、外祖母
-- 旁系同辈：兄弟、姐妹、堂兄弟（父亲兄弟的儿子）、表兄弟（父亲姐妹或母亲兄弟姐妹的儿子）
+- 旁系同辈：兄弟、姐妹、堂兄弟（父亲兄弟的儿子）、表兄弟（父亲姐妹或母亲兄弟姐妹的儿子，分姑表/舅表/姨表）
 - 旁系长辈：伯父、叔父（父亲的兄弟）、姑母（父亲的姐妹）、舅父（母亲的兄弟）、姨母（母亲的姐妹）
 - 姻亲：配偶、岳父、岳母、公公、婆婆、儿媳、女婿、亲家
 
@@ -573,21 +534,12 @@ async function callAI(messages) {
     const resp = await fetch(AGENT_CONFIG.workerUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages,
-        tools: AGENT_TOOLS,
-        tool_choice: 'required'
-      }),
+      body: JSON.stringify({ messages, tools: AGENT_TOOLS, tool_choice: 'required' }),
       signal: controller.signal
     });
-    if (!resp.ok) {
-      const t = await resp.text().catch(() => '');
-      throw new Error(`Worker ${resp.status}: ${t.slice(0, 200)}`);
-    }
+    if (!resp.ok) { const t = await resp.text().catch(() => ''); throw new Error(`Worker ${resp.status}: ${t.slice(0, 200)}`); }
     return await resp.json();
-  } finally {
-    clearTimeout(timer);
-  }
+  } finally { clearTimeout(timer); }
 }
 
 async function runAgent(userInput, onProgress) {
@@ -604,7 +556,6 @@ async function runAgent(userInput, onProgress) {
     if (!msg) throw new Error('模型返回格式异常');
 
     if (!msg.tool_calls || msg.tool_calls.length === 0) {
-      // 模型直接回答了（没调工具）
       return { ok: true, answer: msg.content || '(空)', steps };
     }
 
@@ -613,59 +564,47 @@ async function runAgent(userInput, onProgress) {
     let args = {};
     try { args = JSON.parse(call.function.arguments || '{}'); } catch (e) {}
 
-    if (toolName === 'finish_answer') {
-      return { ok: true, answer: args.answer || '(空)', steps };
-    }
+    if (toolName === 'finish_answer') return { ok: true, answer: args.answer || '(空)', steps };
 
     onProgress && onProgress(`🔧 第 ${step + 1} 步：调用 ${toolName}(${JSON.stringify(args)})`);
     const result = executeTool(toolName, args);
     steps.push({ tool: toolName, args, result });
 
     messages.push(msg);
-    messages.push({
-      role: 'tool',
-      tool_call_id: call.id,
-      content: JSON.stringify(result)
-    });
+    messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(result) });
   }
 
-  // 超过最大步数
-  return { ok: false, error: `超过最大推理步数（${AGENT_CONFIG.maxSteps}），可能问题过于复杂或模型陷入循环。`, steps };
+  return { ok: false, error: `超过最大推理步数（${AGENT_CONFIG.maxSteps}）。`, steps };
 }
 
-// ==================== 结果渲染 ====================
 function makeClickableName(name) {
   return `<span class="clickable-name" data-name="${escapeHtml(name)}">${escapeHtml(name)}</span>`;
 }
 function bindClickableNames() {
   document.querySelectorAll('.clickable-name').forEach(el => {
-    el.onclick = (e) => {
-      const name = e.target.getAttribute('data-name');
-      if (name && peopleData[name]) showPersonMediaInModal(name);
-    };
+    el.onclick = (e) => { const name = e.target.getAttribute('data-name'); if (name && peopleData[name]) showPersonMediaInModal(name); };
   });
 }
 
-function renderAgentResult(result, userInput) {
+function renderAgentResult(result) {
   let html = '';
   if (result.steps && result.steps.length) {
     const stepsHtml = result.steps.map((s, i) => {
       const args = JSON.stringify(s.args);
-      let resultSummary = '';
-      if (s.result.ok === false) resultSummary = `❌ ${s.result.error || '失败'}`;
-      else if (s.result.matches) resultSummary = `匹配到 ${s.result.matches.length} 人：${s.result.matches.slice(0, 5).join('、')}`;
-      else if (s.result.relatives) resultSummary = `找到 ${s.result.count} 人：${s.result.relatives.slice(0, 8).join('、')}`;
-      else if (s.result.relation) resultSummary = `关系：${s.result.relation}`;
-      else if (s.result.nearest_ancestor) resultSummary = `最近共同祖先：${s.result.nearest_ancestor}`;
-      else if (s.result.name) resultSummary = `已获取 ${s.result.name} 的信息`;
-      else resultSummary = '已返回数据';
-      return `  第${i + 1}步: ${s.tool}(${escapeHtml(args)})\n       → ${escapeHtml(resultSummary)}`;
+      let summary = '';
+      if (s.result.ok === false) summary = `❌ ${s.result.error || '失败'}`;
+      else if (s.result.matches) summary = `匹配到 ${s.result.matches.length} 人：${s.result.matches.slice(0, 5).join('、')}`;
+      else if (s.result.relatives) summary = `找到 ${s.result.count} 人：${s.result.relatives.slice(0, 8).join('、')}`;
+      else if (s.result.relation) summary = `关系：${s.result.relation}`;
+      else if (s.result.nearest_ancestor) summary = `最近共同祖先：${s.result.nearest_ancestor}`;
+      else if (s.result.name) summary = `已获取 ${s.result.name} 的信息`;
+      else summary = '已返回数据';
+      return `  第${i + 1}步: ${s.tool}(${escapeHtml(args)})\n       → ${escapeHtml(summary)}`;
     }).join('\n');
     html += `<div class="debug-banner">🧠 推理过程：\n${stepsHtml}</div>`;
   }
 
   if (result.ok) {
-    // 把答案中的姓名做 clickable
     let ans = escapeHtml(result.answer);
     if (peopleData) {
       const names = Object.keys(peopleData).sort((a, b) => b.length - a.length);
@@ -696,60 +635,38 @@ async function runNaturalQueryAgent(text) {
     const result = await runAgent(text, (progress) => {
       outputPre.innerHTML = `<pre>${escapeHtml(progress)}</pre>`;
     });
-    const speakText = renderAgentResult(result, text);
+    const speakText = renderAgentResult(result);
     if (document.getElementById('ttsToggle').checked && speakText) speak(speakText);
   } catch (e) {
     outputPre.innerHTML = `<pre>❌ Agent 调用失败：${escapeHtml(e.message)}\n\n请检查：\n1. Cloudflare Worker 是否在线\n2. 是否已配置 DeepSeek API Key\n3. 网络是否正常</pre>`;
   }
 }
 
-// ==================== 语音输出 ====================
 function speak(text) {
   if (!text || !window.speechSynthesis) return;
-  try {
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'zh-CN';
-    window.speechSynthesis.speak(u);
-  } catch (e) {}
+  try { window.speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = 'zh-CN'; window.speechSynthesis.speak(u); } catch (e) {}
 }
 
-// ==================== 语音输入 ====================
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
 const speechRecognitionSupported = !!SpeechRecognitionAPI;
 let isListening = false;
 function setupSpeechRecognition() {
   const micBtn = document.getElementById('micBtn'), micStatus = document.getElementById('micStatus');
-  if (!speechRecognitionSupported) {
-    micBtn.disabled = true; micBtn.title = '当前浏览器不支持语音识别';
-    micStatus.textContent = '（当前浏览器不支持语音识别，可直接打字）';
-    return;
-  }
+  if (!speechRecognitionSupported) { micBtn.disabled = true; micStatus.textContent = '（当前浏览器不支持语音识别，可直接打字）'; return; }
   let currentRecognizer = null, queryTriggered = false, autoStopTimer = null, forceStopTimer = null;
-  function reset(msg) {
-    clearTimeout(autoStopTimer); clearTimeout(forceStopTimer);
-    isListening = false; micBtn.classList.remove('listening');
-    if (msg) micStatus.textContent = msg;
-  }
+  function reset(msg) { clearTimeout(autoStopTimer); clearTimeout(forceStopTimer); isListening = false; micBtn.classList.remove('listening'); if (msg) micStatus.textContent = msg; }
   function createRec() {
-    const r = new SpeechRecognitionAPI();
-    r.lang = 'zh-CN'; r.continuous = false; r.interimResults = true;
+    const r = new SpeechRecognitionAPI(); r.lang = 'zh-CN'; r.continuous = false; r.interimResults = true;
     r.onstart = () => {
       isListening = true; queryTriggered = false;
       document.getElementById('voiceQueryInput').value = '';
-      micBtn.classList.add('listening');
-      micStatus.textContent = '🎙️ 正在听...';
+      micBtn.classList.add('listening'); micStatus.textContent = '🎙️ 正在听...';
       autoStopTimer = setTimeout(() => { try { r.stop(); } catch(e){} }, 10000);
     };
     r.onresult = (e) => {
-      let t = '';
-      for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
+      let t = ''; for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript;
       document.getElementById('voiceQueryInput').value = t;
-      if (e.results[e.results.length - 1].isFinal) {
-        queryTriggered = true;
-        micStatus.textContent = '✅ 识别完成，正在查询...';
-        runNaturalQueryAgent(t);
-      }
+      if (e.results[e.results.length - 1].isFinal) { queryTriggered = true; micStatus.textContent = '✅ 识别完成'; runNaturalQueryAgent(t); }
     };
     r.onerror = (e) => reset(`⚠️ 识别出错：${e.error}`);
     r.onend = () => {
@@ -757,26 +674,18 @@ function setupSpeechRecognition() {
       reset(null); currentRecognizer = null;
       if (!triggered) {
         const t = document.getElementById('voiceQueryInput').value.trim();
-        if (t) { micStatus.textContent = '✅ 已结束，正在查询...'; runNaturalQueryAgent(t); }
+        if (t) { micStatus.textContent = '✅ 已结束'; runNaturalQueryAgent(t); }
         else micStatus.textContent = '⚠️ 没有识别到内容。';
       }
     };
     return r;
   }
   micBtn.addEventListener('click', () => {
-    if (isListening) {
-      try { currentRecognizer && currentRecognizer.abort(); } catch(e){}
-      reset('已手动停止。'); currentRecognizer = null; return;
-    }
+    if (isListening) { try { currentRecognizer && currentRecognizer.abort(); } catch(e){} reset('已手动停止。'); currentRecognizer = null; return; }
     currentRecognizer = createRec();
     try {
       currentRecognizer.start();
-      forceStopTimer = setTimeout(() => {
-        if (isListening) {
-          try { currentRecognizer && currentRecognizer.abort(); } catch(e){}
-          reset('⚠️ 识别超时，已自动复位。'); currentRecognizer = null;
-        }
-      }, 15000);
+      forceStopTimer = setTimeout(() => { if (isListening) { try { currentRecognizer && currentRecognizer.abort(); } catch(e){} reset('⚠️ 识别超时'); currentRecognizer = null; } }, 15000);
     } catch (e) { micStatus.textContent = '⚠️ 启动失败：' + e.message; }
   });
 }
@@ -784,7 +693,6 @@ setupSpeechRecognition();
 document.getElementById('voiceQueryBtn').addEventListener('click', () => runNaturalQueryAgent(document.getElementById('voiceQueryInput').value.trim()));
 document.getElementById('voiceQueryInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') runNaturalQueryAgent(e.target.value.trim()); });
 
-// ==================== 运行环境 ====================
 const isOnline = window.location.protocol === 'https:';
 const GITHUB_BASE = 'https://fengzd45.github.io/codex1/%E8%B5%84%E6%96%99/';
 const FAMILY_DATA_URL = 'https://fengzd45.github.io/codex1/family_data.jsonl';
@@ -799,7 +707,6 @@ const closeModalBtn = document.getElementById('closeModalBtn');
 const selectFolderBtn = document.getElementById('selectFolderBtn');
 const statModal = document.getElementById('statModal');
 
-// ==================== 手动模式兼容 ====================
 function printRelationshipsWithClick(startName) {
   const rels = bfsRelationships(startName);
   const byGap = new Map();
@@ -837,19 +744,24 @@ function queryPairRelation(a, b) {
   return { ok: true, nameA: a, nameB: b, relation: rel };
 }
 
+// ★ 修复版：精确匹配候选列表
 function queryPersonsByRelation(name, relTerm) {
   if (!peopleData[name]) return { ok: false, message: `'${name}' 不在家谱中` };
+  if (!relTerm) return { ok: false, message: '请输入关系称呼' };
+  const candidates = resolveRelationCandidates(relTerm);
   const rels = bfsRelationships(name);
   const matches = [];
   for (const [pname, info] of Object.entries(rels)) {
     if (pname === name) continue;
     const rel = getRelationship(peopleData[name], peopleData[pname], info.pathPersons, info.pathOps);
-    if (rel.includes(relTerm)) matches.push({ name: pname, relation: rel });
+    if (candidates.includes(rel)) matches.push({ name: pname, relation: rel });
   }
-  return matches.length ? { ok: true, name, relTerm, matches } : { ok: false, message: `未找到 '${name}' 的「${relTerm}」` };
+  const note = candidates.length > 1 ? `（按 ${candidates.join(' / ')} 匹配）` : (candidates[0] !== relTerm ? `（按「${candidates[0]}」匹配）` : '');
+  return matches.length
+    ? { ok: true, name, relTerm, matches, note }
+    : { ok: false, message: `未找到 '${name}' 的「${relTerm}」${note}` };
 }
 
-// ==================== 资料库加载 ====================
 async function tryAutoLoad() {
   if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
     try {
@@ -860,7 +772,7 @@ async function tryAutoLoad() {
           peopleData = parsed; dataLoaded = true; enableUI();
           folderStatusSpan.innerHTML = `✅ 自动加载成功！共 ${Object.keys(peopleData).length} 位人物。`;
           folderStatusSpan.style.color = '#2c5a2c';
-          outputPre.innerHTML = `<pre>✅ 家谱数据已加载（${Object.keys(peopleData).length} 人）。\n\n现在可以试试问：\n• 冯宗德的老婆的堂哥的儿子和冯宗德是什么关系\n• 冯宗德的表哥的爷爷是谁\n• 冯宗德和颜新的共同祖先是谁\n• 冯乔福的所有儿子之间是什么关系</pre>`;
+          outputPre.innerHTML = `<pre>✅ 家谱数据已加载（${Object.keys(peopleData).length} 人）。\n\n试试问：\n• 冯宗德的老婆的堂哥的儿子和冯宗德是什么关系\n• 冯宗德的表哥的爷爷是谁\n• 冯宗德和颜新的共同祖先是谁\n• 冯乔福的所有儿子之间是什么关系</pre>`;
           document.getElementById('startName').value = peopleData['冯宗德'] ? '冯宗德' : (Object.keys(peopleData)[0] || '');
           return;
         }
@@ -913,7 +825,6 @@ selectFolderBtn.onclick = async () => {
   } catch (err) { if (err.name !== 'AbortError') console.error(err); }
 };
 
-// ==================== 多媒体弹窗 ====================
 function closeModal() { modalMedia.classList.remove('active'); if (_fromStatModal) { statModal.classList.add('active'); _fromStatModal = false; } }
 function openModal() { modalMedia.classList.add('active'); }
 closeModalBtn.onclick = closeModal;
@@ -921,10 +832,7 @@ modalMedia.addEventListener('click', e => { if (e.target === modalMedia) closeMo
 
 async function loadManifest() {
   if (manifestCache) return manifestCache;
-  try {
-    const resp = await fetch('https://fengzd45.github.io/codex1/manifest.json');
-    if (resp.ok) { manifestCache = await resp.json(); return manifestCache; }
-  } catch(e){}
+  try { const resp = await fetch('https://fengzd45.github.io/codex1/manifest.json'); if (resp.ok) { manifestCache = await resp.json(); return manifestCache; } } catch(e){}
   return null;
 }
 async function listOnlineFiles(personName) {
@@ -996,9 +904,8 @@ async function showPersonMediaInModal(personName) {
   } catch(e) { modalBody.innerHTML = `<div class="empty-media-modal">❌ 找不到文件夹</div>`; }
 }
 
-// ==================== 图形树（简版保留）====================
+// 图形树
 let treeState = { canvas: null, ctx: null, rootName: '', baseNodes: new Set(), dynamicNodes: new Set(), expanded: new Set(), offsetX: 0, offsetY: 0, scale: 0.8, nodesList: [] };
-
 function buildBaseSet(root) {
   if (!root) return new Set();
   const nodes = new Set([root.name]);
@@ -1014,15 +921,9 @@ function toggleNode(name) {
   const isParent = root && (root.fatherObj?.name === name || root.motherObj?.name === name);
   const targets = isParent ? node.children.filter(c => c.name !== treeState.rootName) : node.children;
   if (!targets.length) return false;
-  if (treeState.expanded.has(name)) {
-    for (const c of targets) { treeState.dynamicNodes.delete(c.name); treeState.expanded.delete(c.name); }
-    treeState.expanded.delete(name);
-  } else {
-    for (const c of targets) treeState.dynamicNodes.add(c.name);
-    treeState.expanded.add(name);
-  }
-  renderTree();
-  return true;
+  if (treeState.expanded.has(name)) { for (const c of targets) { treeState.dynamicNodes.delete(c.name); treeState.expanded.delete(c.name); } treeState.expanded.delete(name); }
+  else { for (const c of targets) treeState.dynamicNodes.add(c.name); treeState.expanded.add(name); }
+  renderTree(); return true;
 }
 function renderTree() {
   if (!treeState.canvas || !treeState.ctx) return;
@@ -1053,20 +954,14 @@ function renderTree() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.save(); ctx.translate(treeState.offsetX, treeState.offsetY); ctx.scale(treeState.scale, treeState.scale);
   ctx.beginPath(); ctx.strokeStyle = '#cca47d'; ctx.lineWidth = 2.5;
-  for (const n of all) {
-    const p = peopleData[n], pos = positions.get(n); if (!p || !pos) continue;
-    for (const c of p.children) if (all.has(c.name)) { const cp = positions.get(c.name); if (cp) { ctx.moveTo(pos.x, pos.y); ctx.lineTo(cp.x, cp.y); } }
-  }
+  for (const n of all) { const p = peopleData[n], pos = positions.get(n); if (!p || !pos) continue; for (const c of p.children) if (all.has(c.name)) { const cp = positions.get(c.name); if (cp) { ctx.moveTo(pos.x, pos.y); ctx.lineTo(cp.x, cp.y); } } }
   ctx.stroke();
   ctx.beginPath(); ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 2.8;
   const drawn = new Set();
   for (const n of all) {
     const p = peopleData[n]; if (!p || p.sex !== '男') continue;
     const pos = positions.get(n); if (!pos) continue;
-    for (const s of p.spouse) if (all.has(s) && !drawn.has(n+'|'+s) && !drawn.has(s+'|'+n)) {
-      const sp = positions.get(s);
-      if (sp) { ctx.moveTo(pos.x, pos.y); ctx.lineTo(sp.x, sp.y); drawn.add(n+'|'+s); }
-    }
+    for (const s of p.spouse) if (all.has(s) && !drawn.has(n+'|'+s) && !drawn.has(s+'|'+n)) { const sp = positions.get(s); if (sp) { ctx.moveTo(pos.x, pos.y); ctx.lineTo(sp.x, sp.y); drawn.add(n+'|'+s); } }
   }
   ctx.stroke();
   treeState.nodesList = [];
@@ -1093,10 +988,8 @@ function initTree(rootName) {
   treeState.ctx = treeState.canvas.getContext('2d');
   document.getElementById('treeModal').classList.add('active');
   setTimeout(() => {
-    const c = document.getElementById('treeCanvasContainer');
-    const r = c.getBoundingClientRect();
-    const W = Math.max(r.width, window.innerWidth * 0.95);
-    const H = Math.max(r.height, window.innerHeight * 0.75);
+    const c = document.getElementById('treeCanvasContainer'), r = c.getBoundingClientRect();
+    const W = Math.max(r.width, window.innerWidth * 0.95), H = Math.max(r.height, window.innerHeight * 0.75);
     treeState.canvas.width = W; treeState.canvas.height = H;
     treeState.offsetX = W / 2; treeState.offsetY = 150;
     renderTree();
@@ -1110,16 +1003,8 @@ function bindGestures() {
   window.addEventListener('mousemove', e => { if (!drag) return; treeState.offsetX = e.clientX - ds.x; treeState.offsetY = e.clientY - ds.y; renderTree(); });
   window.addEventListener('mouseup', () => drag = false);
   c.addEventListener('wheel', e => { e.preventDefault(); treeState.scale = Math.min(2.5, Math.max(0.3, treeState.scale * (e.deltaY > 0 ? 0.9 : 1.1))); renderTree(); }, { passive: false });
-  c.addEventListener('touchstart', e => {
-    const t = e.touches;
-    if (t.length === 1) { drag = true; ds.x = t[0].clientX - treeState.offsetX; ds.y = t[0].clientY - treeState.offsetY; }
-    else if (t.length === 2) { drag = false; td = dist(t); ts = treeState.scale; }
-  }, { passive: true });
-  c.addEventListener('touchmove', e => {
-    const t = e.touches;
-    if (t.length === 1 && drag) { e.preventDefault(); treeState.offsetX = t[0].clientX - ds.x; treeState.offsetY = t[0].clientY - ds.y; renderTree(); }
-    else if (t.length === 2) { e.preventDefault(); const d = dist(t); if (td > 0) { treeState.scale = Math.min(2.5, Math.max(0.3, ts * (d / td))); renderTree(); } }
-  }, { passive: false });
+  c.addEventListener('touchstart', e => { const t = e.touches; if (t.length === 1) { drag = true; ds.x = t[0].clientX - treeState.offsetX; ds.y = t[0].clientY - treeState.offsetY; } else if (t.length === 2) { drag = false; td = dist(t); ts = treeState.scale; } }, { passive: true });
+  c.addEventListener('touchmove', e => { const t = e.touches; if (t.length === 1 && drag) { e.preventDefault(); treeState.offsetX = t[0].clientX - ds.x; treeState.offsetY = t[0].clientY - ds.y; renderTree(); } else if (t.length === 2) { e.preventDefault(); const d = dist(t); if (td > 0) { treeState.scale = Math.min(2.5, Math.max(0.3, ts * (d / td))); renderTree(); } } }, { passive: false });
   c.addEventListener('touchend', () => { drag = false; td = 0; });
   c.addEventListener('click', e => {
     const r = c.getBoundingClientRect();
@@ -1132,7 +1017,6 @@ function bindGestures() {
   });
 }
 
-// ==================== 按钮绑定 ====================
 document.getElementById('searchBtn').addEventListener('click', () => {
   const n = document.getElementById('startName').value.trim();
   if (!n || !peopleData[n]) { outputPre.innerHTML = '<pre>请输入有效姓名</pre>'; return; }
@@ -1152,7 +1036,7 @@ document.getElementById('relSearchBtn').addEventListener('click', () => {
   const t = document.getElementById('relTerm').value.trim();
   const r = queryPersonsByRelation(n, t);
   if (!r.ok) { outputPre.innerHTML = `<pre>❌ ${escapeHtml(r.message)}</pre>`; return; }
-  outputPre.innerHTML = `<pre>${escapeHtml(r.name)} 的「${escapeHtml(r.relTerm)}」（共${r.matches.length}人）:\n${r.matches.map(m => `  ${makeClickableName(m.name)}`).join('\n')}</pre>`;
+  outputPre.innerHTML = `<pre>${escapeHtml(r.name)} 的「${escapeHtml(r.relTerm)}」${r.note || ''}（共${r.matches.length}人）:\n${r.matches.map(m => `  ${makeClickableName(m.name)}  —— ${escapeHtml(m.relation)}`).join('\n')}</pre>`;
   bindClickableNames();
 });
 document.getElementById('treeBtn').addEventListener('click', () => {
@@ -1165,7 +1049,6 @@ document.getElementById('treeModal').addEventListener('click', e => { if (e.targ
 document.getElementById('toTopBtn').onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 window.addEventListener('scroll', () => { document.getElementById('toTopBtn').style.display = window.scrollY > 300 ? 'flex' : 'none'; });
 
-// 统计
 document.getElementById('statBtn').addEventListener('click', async () => {
   const body = document.getElementById('statModalBody');
   body.innerHTML = '<div class="stat-empty">⏳ 统计中...</div>';
@@ -1208,7 +1091,6 @@ document.getElementById('statBtn').addEventListener('click', async () => {
 document.getElementById('closeStatModalBtn').addEventListener('click', e => { e.stopPropagation(); statModal.classList.remove('active'); _fromStatModal = false; });
 statModal.addEventListener('click', e => { if (e.target === statModal) { statModal.classList.remove('active'); _fromStatModal = false; } });
 
-// 状态提示
 document.getElementById('aiStatusLine').textContent = AGENT_CONFIG.enabled ? '🤖 Agent 已启用（DeepSeek + 工具调用）' : '🤖 Agent 已关闭';
 </script>
 </body>
