@@ -400,9 +400,10 @@ const REL_TOKEN_MAP = {
     '兄弟':['siblings'],'姐妹':['siblings'],'外婆':['mother','mother'],'姥姥':['mother','mother'],'外公':['mother','father'],'姥爷':['mother','father'],
     '奶奶':['father','mother'],'爷爷':['father','father'],'岳父':['spouse','father'],'老丈人':['spouse','father'],'岳母':['spouse','mother'],'丈母娘':['spouse','mother'],
     '公公':['spouse','father'],'婆婆':['spouse','mother'],'儿媳妇':['sons','spouse'],'儿媳':['sons','spouse'],'女婿':['daughters','spouse'],
-    // ★ 新增：堂表亲多步路径映射（用于本地解析）
+    // ★ 新增：堂表亲各类通俗叫法
     '堂兄弟': ['father', 'children', 'sons'],
     '堂兄': ['father', 'children', 'sons'],
+    '堂哥': ['father', 'children', 'sons'],
     '堂弟': ['father', 'children', 'sons'],
     '堂姐': ['father', 'children', 'daughters'],
     '堂妹': ['father', 'children', 'daughters'],
@@ -518,7 +519,6 @@ function walkRelationChain(startName, steps) {
         if (!current.length) return { ok: false, message: `推导链中断：${startName}的${stepTextArr.join(' 的 ')}在数据中不存在。可能家谱中未录入该亲属信息。` };
     }
     const stepText = stepTextArr.join(' 的 ');
-    // ★ 新增：过滤掉查询起点自身（防止推算堂表亲时把自己也算进去）
     const filteredNames = current.map(p => p.name).filter(n => n !== startName);
     return { ok: true, type: 'chain', startName, stepText, names: filteredNames };
 }
@@ -641,7 +641,7 @@ const IR_SYSTEM_PROMPT = `你是一个"家谱问句翻译器"。你的唯一任�
 5) 某人的某类亲属之间是什么关系：{"type":"set_relation","person":"姓名","relTerm":"儿子"}
 6) 两人共同祖先：{"type":"common_ancestor","a":"姓名A","b":"姓名B"}
 7) 反向查询：{"type":"unsupported","message":"暂不支持反向查询，请尝试正向查询"}
-【常用映射】"老丈人"/"岳父"=["spouse","father"]；"岳母"/"丈母娘"=["spouse","mother"]；"公公"=["spouse","father"]；"婆婆"=["spouse","mother"]；"儿媳妇"=["sons","spouse"]；"女婿"=["daughters","spouse"]；"堂兄弟"/"堂兄"/"堂弟"=["father","children","sons"]；"表兄弟"/"表哥"/"表弟"=["mother","children","sons"]；"堂姐"/"堂妹"=["father","children","daughters"]；"表姐"/"表妹"=["mother","children","daughters"]
+【常用映射】"老丈人"/"岳父"=["spouse","father"]；"岳母"/"丈母娘"=["spouse","mother"]；"公公"=["spouse","father"]；"婆婆"=["spouse","mother"]；"儿媳妇"=["sons","spouse"]；"女婿"=["daughters","spouse"]；"堂兄弟"/"堂兄"/"堂哥"/"堂弟"=["father","children","sons"]；"表兄弟"/"表哥"/"表弟"=["mother","children","sons"]；"堂姐"/"堂妹"=["father","children","daughters"]；"表姐"/"表妹"=["mother","children","daughters"]
 【关键规则 — 必须严格遵守】
 - 姓名是"具体人名"，a/b/person 字段只能放具体人名。
 - 多步关系必须使用 path 数组。严禁把它们拼成一个长字符串传给 relTerm！
