@@ -156,11 +156,7 @@
 
 <script src="https://unpkg.com/pinyin-pro"></script>
 <script>
-const AGENT_CONFIG = {
-    workerUrl: 'https://family-ai-proxy.fengzd8.workers.dev',
-    enabled: true,
-    timeout: 20000
-};
+const AGENT_CONFIG = { workerUrl: 'https://family-ai-proxy.fengzd8.workers.dev', enabled: true, timeout: 20000 };
 
 class Person {
     constructor(data) {
@@ -183,10 +179,10 @@ function buildRelations(people) {
     return people;
 }
 function parseJsonl(text) {
-    const lines = text.split(/\r?\n/); const people = {};
+    const lines = text.split(/\r?\n/), people = {};
     for (const line of lines) {
         if (!line.trim()) continue;
-        try { const obj = JSON.parse(line); const p = new Person(obj); people[p.name] = p; } catch(e) {}
+        try { const obj = JSON.parse(line), p = new Person(obj); people[p.name] = p; } catch(e) {}
     }
     return buildRelations(people);
 }
@@ -202,7 +198,7 @@ function editDistance(a, b) {
 function findBestPhoneticNameMatch(text) {
     if (!peopleData || typeof pinyinPro === 'undefined') return null;
     if (!window._namePinyinCache) window._namePinyinCache = {};
-    const cache = window._namePinyinCache; const names = Object.keys(peopleData);
+    const cache = window._namePinyinCache, names = Object.keys(peopleData);
     let best = null, bestScore = Infinity, bestPos = -1, bestLen = 0;
     for (const n of names) {
         if (n.length < 2 || n.length > text.length) continue;
@@ -210,8 +206,7 @@ function findBestPhoneticNameMatch(text) {
         const namePinyin = cache[n]; if (!namePinyin) continue;
         for (let i = 0; i + n.length <= text.length; i++) {
             const win = text.slice(i, i + n.length); if (win === n) continue;
-            const dist = editDistance(toPlainPinyin(win), namePinyin);
-            const score = dist / Math.max(namePinyin.length, 1);
+            const dist = editDistance(toPlainPinyin(win), namePinyin), score = dist / Math.max(namePinyin.length, 1);
             if (score < bestScore) { bestScore = score; best = n; bestPos = i; bestLen = n.length; }
         }
     }
@@ -227,7 +222,7 @@ function correctNamesByPinyin(text) {
 
 function bfsRelationships(startName, people) {
     const start = people[startName]; if (!start) return {};
-    const visited = {}; const queue = [{ person: start, genGap: 0, pathPersons: [], pathOps: [] }];
+    const visited = {}, queue = [{ person: start, genGap: 0, pathPersons: [], pathOps: [] }];
     while (queue.length) {
         const { person: cur, genGap, pathPersons, pathOps } = queue.shift();
         if (visited[cur.name]) continue;
@@ -404,9 +399,21 @@ const REL_TOKEN_MAP = {
     '姐姐':['older_sisters'],'姐':['older_sisters'],'妹妹':['younger_sisters'],'妹':['younger_sisters'],'子女':['children'],'孩子':['children'],
     '兄弟':['siblings'],'姐妹':['siblings'],'外婆':['mother','mother'],'姥姥':['mother','mother'],'外公':['mother','father'],'姥爷':['mother','father'],
     '奶奶':['father','mother'],'爷爷':['father','father'],'岳父':['spouse','father'],'老丈人':['spouse','father'],'岳母':['spouse','mother'],'丈母娘':['spouse','mother'],
-    '公公':['spouse','father'],'婆婆':['spouse','mother'],'儿媳妇':['sons','spouse'],'儿媳':['sons','spouse'],'女婿':['daughters','spouse']
+    '公公':['spouse','father'],'婆婆':['spouse','mother'],'儿媳妇':['sons','spouse'],'儿媳':['sons','spouse'],'女婿':['daughters','spouse'],
+    // ★ 新增：堂表亲多步路径映射（用于本地解析）
+    '堂兄弟': ['father', 'children', 'sons'],
+    '堂兄': ['father', 'children', 'sons'],
+    '堂弟': ['father', 'children', 'sons'],
+    '堂姐': ['father', 'children', 'daughters'],
+    '堂妹': ['father', 'children', 'daughters'],
+    '表兄弟': ['mother', 'children', 'sons'],
+    '表哥': ['mother', 'children', 'sons'],
+    '表弟': ['mother', 'children', 'sons'],
+    '表姐': ['mother', 'children', 'daughters'],
+    '表妹': ['mother', 'children', 'daughters']
 };
 const REL_KEYS_SORTED = Object.keys(REL_TOKEN_MAP).sort((a,b) => b.length - a.length);
+
 function parseRelTermToPath(term) {
     if (!term) return null; let i = 0, path = [];
     while (i < term.length) {
@@ -418,6 +425,7 @@ function parseRelTermToPath(term) {
     }
     return path.length > 1 ? path : null;
 }
+
 function validateRelTerm(term) {
     if (!term) return null;
     if (term.includes('称呼') || term.includes('叫') || term.includes('谁')) return '暂不支持反向查询，请尝试正向查询（例如"冯宗德叫谁姑父"）。';
@@ -439,6 +447,7 @@ const RELATION_AMBIGUOUS_MAP = {
 const RELATION_SYNONYM_REVERSE = {};
 for (const [canonical, aliases] of Object.entries(RELATION_SYNONYM_MAP)) for (const alias of aliases) RELATION_SYNONYM_REVERSE[alias] = canonical;
 const RELATION_PREFIXES = ['外岳','夫家','妻家','亲家','再从','堂','姻','岳','族','远','内','外'];
+
 function resolveRelationCandidates(term) {
     term = (term || '').trim(); if (!term) return [];
     if (RELATION_AMBIGUOUS_MAP[term]) return RELATION_AMBIGUOUS_MAP[term];
@@ -508,7 +517,10 @@ function walkRelationChain(startName, steps) {
         current = [...next.values()]; stepTextArr.push(RELATION_STEP_LABELS[step] || step);
         if (!current.length) return { ok: false, message: `推导链中断：${startName}的${stepTextArr.join(' 的 ')}在数据中不存在。可能家谱中未录入该亲属信息。` };
     }
-    return { ok: true, type: 'chain', startName, stepText: stepTextArr.join(' 的 '), names: current.map(p => p.name) };
+    const stepText = stepTextArr.join(' 的 ');
+    // ★ 新增：过滤掉查询起点自身（防止推算堂表亲时把自己也算进去）
+    const filteredNames = current.map(p => p.name).filter(n => n !== startName);
+    return { ok: true, type: 'chain', startName, stepText, names: filteredNames };
 }
 
 function findCommonAncestor(nameA, nameB) {
@@ -629,6 +641,7 @@ const IR_SYSTEM_PROMPT = `你是一个"家谱问句翻译器"。你的唯一任�
 5) 某人的某类亲属之间是什么关系：{"type":"set_relation","person":"姓名","relTerm":"儿子"}
 6) 两人共同祖先：{"type":"common_ancestor","a":"姓名A","b":"姓名B"}
 7) 反向查询：{"type":"unsupported","message":"暂不支持反向查询，请尝试正向查询"}
+【常用映射】"老丈人"/"岳父"=["spouse","father"]；"岳母"/"丈母娘"=["spouse","mother"]；"公公"=["spouse","father"]；"婆婆"=["spouse","mother"]；"儿媳妇"=["sons","spouse"]；"女婿"=["daughters","spouse"]；"堂兄弟"/"堂兄"/"堂弟"=["father","children","sons"]；"表兄弟"/"表哥"/"表弟"=["mother","children","sons"]；"堂姐"/"堂妹"=["father","children","daughters"]；"表姐"/"表妹"=["mother","children","daughters"]
 【关键规则 — 必须严格遵守】
 - 姓名是"具体人名"，a/b/person 字段只能放具体人名。
 - 多步关系必须使用 path 数组。严禁把它们拼成一个长字符串传给 relTerm！
