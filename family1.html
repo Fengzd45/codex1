@@ -835,15 +835,20 @@ function walkRelationChain(startName, steps) {
     if (!peopleData[startName]) return { ok: false, message: `"${startName}" 不在家谱中。` };
     if (!Array.isArray(steps) || steps.length === 0) return { ok: false, message: '没有给出查询步骤。' };
     let current = [peopleData[startName]];
+    let stepTextArr = [];
     for (const step of steps) {
         const fn = RELATION_STEP_FNS[step];
         if (!fn) return { ok: false, message: `不认识的关系步骤："${step}"` };
         const next = new Map();
         for (const p of current) for (const n of fn(p)) next.set(n.name, n);
         current = [...next.values()];
-        if (current.length === 0) break;
+        stepTextArr.push(RELATION_STEP_LABELS[step] || step);
+        // ★ 优化：如果中间断开，直接说明是哪一步断了，方便排查数据缺失
+        if (current.length === 0) {
+            return { ok: false, message: `推导链中断：${startName}的${stepTextArr.join(' 的 ')}在数据中不存在。可能家谱中未录入该亲属信息。` };
+        }
     }
-    const stepText = steps.map(s => RELATION_STEP_LABELS[s] || s).join(' 的 ');
+    const stepText = stepTextArr.join(' 的 ');
     return { ok: true, type: 'chain', startName, stepText, names: current.map(p => p.name) };
 }
 
@@ -1029,7 +1034,6 @@ function fetchWithTimeout(url, options, timeout) {
     return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
 }
 
-// 把描述对象解析成人名数组
 function resolveDescription(desc) {
     if (!desc || !desc.person) return { ok: false, message: '缺少起点姓名。' };
     const person = String(desc.person).trim();
@@ -1043,7 +1047,7 @@ function resolveDescription(desc) {
         descText = `${person}的${desc.relTerm}`;
     } else if (Array.isArray(desc.path) && desc.path.length) {
         const r = walkRelationChain(person, desc.path);
-        if (!r.ok) return r;
+        if (!r.ok) return r; // ★ 直接透传带详细原因的报错
         names = r.names;
         descText = `${person}的${r.stepText}`;
     } else {
@@ -1053,7 +1057,6 @@ function resolveDescription(desc) {
     return { ok: true, names, desc: descText };
 }
 
-// 执行 IR，返回与 renderNaturalQueryResult 兼容的结果对象
 function execIR(ir) {
     if (!ir || typeof ir !== 'object' || !ir.type) return { ok: false, message: '模型没有理解这个问题，换个说法试试。' };
     switch (ir.type) {
