@@ -258,6 +258,9 @@ function getSpouseWithPrefix(rel, baseSex) {
 }
 
 function getRelationship(start, target, pathPersons, ops, people) {
+    // 【改动 3】把 sons/daughters 归一化为 ch，让分支判断统一
+    ops = ops.map(op => (op === 'sons' || op === 'daughters') ? 'ch' : op);
+
     const upSteps = ops.filter(op => op === 'f' || op === 'm').length;
     const downSteps = ops.filter(op => op === 'ch').length;
     const spCount = ops.filter(op => op === 'sp').length;
@@ -453,10 +456,38 @@ function parseRelTermToPath(term) {
     return path.length > 1 ? path : null;
 }
 
+// ===== 【改动 4.1】新增：以 startPerson 为起点动态展开复合关系词 =====
+function expandRelTerm(term, startPerson) {
+    if (!term || !startPerson) return null;
+    let i = 0, currentPaths = [[]];
+    while (i < term.length) {
+        let matched = false;
+        for (const key of REL_KEYS_SORTED) {
+            if (term.startsWith(key, i)) {
+                const steps = REL_TOKEN_MAP[key];
+                const next = [];
+                for (const p of currentPaths) next.push([...p, ...steps]);
+                currentPaths = next;
+                i += key.length;
+                matched = true;
+                break;
+            }
+        }
+        if (!matched) return null;
+    }
+    const results = [];
+    for (const path of currentPaths) {
+        const r = walkRelationChain(startPerson, path);
+        if (r.ok && r.names.length) results.push({ path, names: r.names });
+    }
+    return results.length ? results : null;
+}
+// ==================================================================
+
 function validateRelTerm(term) {
     if (!term) return null;
     if (term.includes('称呼') || term.includes('叫') || term.includes('谁')) return '暂不支持反向查询，请尝试正向查询（例如"冯宗德叫谁姑父"）。';
-    if (term.length <= 4 || parseRelTermToPath(term)) return null;
+    if (term.length <= 4 || parseRelTermToPath(term) || expandRelTerm(term, Object.keys(peopleData || {})[0])) return null;
     const allowed = ['亲家母','亲家公','姑表兄','姑表弟','舅表兄','舅表弟','姨表兄','姨表弟','姑表姐','姑表妹','舅表姐','舅表妹','姨表姐','姨表妹','堂兄','堂弟','堂姐','堂妹'];
     if (allowed.some(w => term.includes(w))) return null;
     return `AI 未能正确拆解关系词「${term}」，请不要把多个关系词连在一起问。请尝试拆分成"某人的A是谁"逐个询问。`;
@@ -468,8 +499,10 @@ const RELATION_SYNONYM_MAP = {
     '伯父':['大爷','伯伯','大伯'],'叔父':['叔叔','叔'],'姑母':['姑姑','姑妈'],'舅父':['舅舅','舅'],'姨母':['姨妈','姨','姨娘'],'侄子':['侄儿'],'嫂':['嫂子','嫂嫂'],'弟媳':['弟妹'],
     '伯母':['大娘','伯娘','大妈'],'叔母':['婶婶','婶子','婶母'],'姑父':['姑丈'],'舅母':['舅妈'],'姨父':['姨丈'],'儿媳':['媳妇'],'女婿':['姑爷'],'曾孙':['重孙'],'曾孙女':['重孙女'],'配偶':['老婆','妻子','老公','丈夫']
 };
+// 【改动 6】补全堂表亲歧义映射
 const RELATION_AMBIGUOUS_MAP = {
-    '表哥':['姑表兄','舅表兄','姨表兄'],'表兄':['姑表兄','舅表兄','姨表兄'],'表弟':['姑表弟','舅表弟','姨表弟'],'表姐':['姑表姐','舅表姐','姨表姐'],'表妹':['姑表妹','舅表妹','姨表妹'],'表兄弟':['姑表兄弟','舅表兄弟','姨表兄弟'],'表姐妹':['姑表姐妹','舅表姐妹','姨表姐妹']
+    '表哥':['姑表兄','舅表兄','姨表兄'],'表兄':['姑表兄','舅表兄','姨表兄'],'表弟':['姑表弟','舅表弟','姨表弟'],'表姐':['姑表姐','舅表姐','姨表姐'],'表妹':['姑表妹','舅表妹','姨表妹'],'表兄弟':['姑表兄弟','舅表兄弟','姨表兄弟'],'表姐妹':['姑表姐妹','舅表姐妹','姨表姐妹'],
+    '堂哥':['堂兄'],'堂弟':['堂弟'],'堂姐':['堂姐'],'堂妹':['堂妹'],'堂兄弟':['堂兄弟'],'堂姐妹':['堂姐妹']
 };
 const RELATION_SYNONYM_REVERSE = {};
 for (const [canonical, aliases] of Object.entries(RELATION_SYNONYM_MAP)) for (const alias of aliases) RELATION_SYNONYM_REVERSE[alias] = canonical;
@@ -534,6 +567,27 @@ const RELATION_STEP_FNS = {
 };
 const RELATION_STEP_LABELS = { father:'父亲', mother:'母亲', spouse:'配偶', children:'子女', sons:'儿子', daughters:'女儿', siblings:'兄弟姐妹', older_brothers:'哥哥', younger_brothers:'弟弟', older_sisters:'姐姐', younger_sisters:'妹妹' };
 
+// ===== 【改动 5】新增：整链归并成中文称谓 =====
+function summarizeChain(steps) {
+    const n = steps.length;
+    if (!n) return '';
+    const allF = steps.every(s => s === 'father');
+    const allM = steps.every(s => s === 'mother');
+    if (allF) {
+        return {1:'父亲',2:'祖父',3:'曾祖父',4:'高祖父',5:'天祖父',6:'烈祖父',7:'太祖父',8:'远祖父',9:'鼻祖父'}[n] || `${n}世父系祖`;
+    }
+    if (allM) {
+        return {1:'母亲',2:'外祖母',3:'外曾祖母',4:'外高祖母'}[n] || `${n}世母系祖`;
+    }
+    if (n === 2 && steps[0] === 'father' && steps[1] === 'spouse') return '母亲';
+    if (n === 2 && steps[0] === 'mother' && steps[1] === 'spouse') return '父亲';
+    if (n === 2 && (steps[0] === 'mother' || steps[0] === 'father') && steps[1] === 'daughters') return '姐妹';
+    if (n === 2 && (steps[0] === 'mother' || steps[0] === 'father') && steps[1] === 'sons') return '兄弟';
+    if (n === 3 && steps[2] === 'spouse' && (steps[1] === 'daughters' || steps[1] === 'sons')) return '姐妹的配偶/兄弟的配偶';
+    return steps.map(s => RELATION_STEP_LABELS[s] || s).join('的');
+}
+// ============================================
+
 function walkRelationChain(startName, steps) {
     if (!peopleData[startName]) return { ok: false, message: `"${startName}" 不在家谱中。` };
     if (!Array.isArray(steps) || !steps.length) return { ok: false, message: '没有给出查询步骤。' };
@@ -546,7 +600,8 @@ function walkRelationChain(startName, steps) {
     }
     const stepText = stepTextArr.join(' 的 ');
     const filteredNames = current.map(p => p.name).filter(n => n !== startName);
-    return { ok: true, type: 'chain', startName, stepText, names: filteredNames };
+    const summaryText = summarizeChain(steps);
+    return { ok: true, type: 'chain', startName, stepText, summaryText, names: filteredNames };
 }
 
 function findCommonAncestor(nameA, nameB) {
@@ -599,8 +654,17 @@ function parseAndRunNaturalQuery(text) {
     const found = findNamesInText(text), uniqueNames = [...new Set(found.map(f => f.name))];
     if (uniqueNames.length >= 2) return { ...queryPairRelation(found[0].name, found.find(f => f.name !== found[0].name).name), type: 'pair' };
     if (uniqueNames.length === 1) {
-        const name = uniqueNames[0], rest = text.replace(name, '').replace(/[的是谁有哪些哪个几个几位呀啊吗呢？?，,。.！!\s]/g, '').trim();
-        if (['', '关系', '所有关系', '全部关系', '全部亲属', '所有亲属', '亲属', '家族树', '家谱'].includes(rest)) return { ok: true, type: 'full', name };
+        const name = uniqueNames[0];
+        // 【改动 2】加强清洗 + 补 set_relation 分支
+        let rest = text.replace(name, '')
+            .replace(/[的是谁有哪些哪个几个几位呀啊吗呢？?，,。.！!\s]/g, '')
+            .replace(/自己|所有|之间|各自|分别|全部|关系/g, '')
+            .trim();
+        if (['', '亲属', '家族树', '家谱'].includes(rest)) return { ok: true, type: 'full', name };
+        if (/所有|之间|各自|分别/.test(text) && rest) {
+            const r = querySetRelation(name, rest);
+            if (r.ok) return r;
+        }
         const path = parseRelTermToPath(rest);
         if (path) { const r = walkRelationChain(name, path); if (r.ok) return { ...r, type: 'chain' }; }
         return { ...queryPersonsByRelation(name, rest), type: 'byrel' };
@@ -633,13 +697,14 @@ function renderNaturalQueryResult(result) {
         html += `<pre>========== 从 ${escapeHtml(result.name)} 出发的家族关系树 ==========\n${printRelationshipsWithClick(result.name, bfsRelationships(result.name, peopleData), peopleData)}</pre>`;
         speakText = `已列出 ${result.name} 的完整家族关系树，请查看屏幕。`;
     } else if (result.type === 'chain') {
+        const summaryLabel = result.summaryText ? `（${escapeHtml(result.summaryText)}）` : '';
         if (!result.names.length) {
-            html += `<pre>========== 关系链查询 ==========\n${escapeHtml(result.startName)} 的 ${escapeHtml(result.stepText)}：没有找到符合条件的人。</pre>`;
+            html += `<pre>========== 关系链查询 ==========\n${escapeHtml(result.startName)} 的 ${escapeHtml(result.stepText)}${summaryLabel}：没有找到符合条件的人。</pre>`;
             speakText = `没有找到 ${result.startName} 的 ${result.stepText}。`;
         } else {
             const lines = result.names.map(n => `  ${makeClickableName(n)}`).join('\n');
-            html += `<pre>========== 关系链查询 ==========\n${escapeHtml(result.startName)} 的 ${escapeHtml(result.stepText)}（共${result.names.length}人） ==========\n${lines}</pre>`;
-            speakText = `${result.startName} 的 ${result.stepText} 是：` + result.names.join('、');
+            html += `<pre>========== 关系链查询 ==========\n${escapeHtml(result.startName)} 的 ${escapeHtml(result.summaryText || result.stepText)}（共${result.names.length}人） ==========\n${lines}</pre>`;
+            speakText = `${result.startName} 的 ${result.summaryText || result.stepText} 是：` + result.names.join('、');
         }
     } else if (result.type === 'cross') {
         const leftLabel = escapeHtml(result.leftDesc), rightLabel = escapeHtml(result.rightDesc);
@@ -659,12 +724,13 @@ function runNaturalQuery(text) {
     if (document.getElementById('ttsToggle').checked) speak(speakText || (result && result.message) || '');
 }
 
+// 【改动 4.2】prompt：优先用 relTerm，不再让 LLM 自己展开 path
 const IR_SYSTEM_PROMPT = `你是一个"家谱问句翻译器"。你的唯一任务是：把用户的中文家谱问句翻译成一个 JSON 对象。
 你不需要回答问题，不需要解释，不需要调用任何工具，只输出 JSON。
 【输出格式】只允许下面几种 type：
 1) 两人关系：{"type":"pair","a":"姓名A","b":"姓名B"}
 2) 单人完整关系树：{"type":"tree","person":"姓名"}
-3) 某人某类亲属是谁：{"type":"query","person":"姓名","relTerm":"称呼词"}。多步关系必须用 path 数组：{"type":"query","person":"姓名","path":["father","mother"]}。原子词：father,mother,spouse,sons,daughters,children,siblings,older_brothers,younger_brothers,older_sisters,younger_sisters
+3) 某人某类亲属是谁：{"type":"query","person":"姓名","relTerm":"称呼词"}。**优先使用 relTerm**，例如“老婆的堂哥的儿子”直接填 relTerm，不要自己展开成 path。只有当 relTerm 无法用常用称呼表达时，才用 path 数组：{"type":"query","person":"姓名","path":[...]}。path 的原子词：father,mother,spouse,sons,daughters,children,siblings,older_brothers,younger_brothers,older_sisters,younger_sisters。
 4) 两人的某类亲属之间的关系：{"type":"relation_between","left":{"person":"姓名A","relTerm":"儿子"},"right":{"person":"姓名B","relTerm":"母亲"}}。左侧/右侧也可以用 path 代替 relTerm。
 5) 某人的某类亲属之间是什么关系：{"type":"set_relation","person":"姓名","relTerm":"儿子"}
 6) 两人共同祖先：{"type":"common_ancestor","a":"姓名A","b":"姓名B"}
@@ -672,19 +738,25 @@ const IR_SYSTEM_PROMPT = `你是一个"家谱问句翻译器"。你的唯一任�
 【常用映射】"老丈人"/"岳父"=["spouse","father"]；"岳母"/"丈母娘"=["spouse","mother"]；"公公"=["spouse","father"]；"婆婆"=["spouse","mother"]；"儿媳妇"=["sons","spouse"]；"女婿"=["daughters","spouse"]；"堂兄弟"/"堂兄"/"堂哥"/"堂弟"=["father","children","sons"]；"表兄弟"/"表哥"/"表弟"=["mother","children","sons"]；"堂姐"/"堂妹"=["father","children","daughters"]；"表姐"/"表妹"=["mother","children","daughters"]
 【关键规则 — 必须严格遵守】
 - 姓名是"具体人名"，a/b/person 字段只能放具体人名。
-- 多步关系必须使用 path 数组。严禁把它们拼成一个长字符串传给 relTerm！
+- **优先使用 relTerm**，把复合关系词原样填进 relTerm，让本地程序去展开。不要自己拼 path，除非 relTerm 实在无法表达。
 - 只输出 JSON，不要 markdown 代码块，不要任何前后缀文字。`;
 
 function fetchWithTimeout(url, options, timeout) {
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeout);
     return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
 }
+// 【改动 4.3】resolveDescription 优先用 expandRelTerm
 function resolveDescription(desc) {
     if (!desc || !desc.person) return { ok: false, message: '缺少起点姓名。' };
     const person = String(desc.person).trim(); if (!peopleData[person]) return { ok: false, message: `"${person}" 不在家谱中。` };
     let names = [], descText = person;
     if (desc.relTerm) {
         const err = validateRelTerm(desc.relTerm); if (err) return { ok: false, message: err };
+        const expanded = expandRelTerm(desc.relTerm, person);
+        if (expanded) {
+            const ns = [...new Set(expanded.flatMap(e => e.names))];
+            if (ns.length) return { ok: true, names: ns, desc: `${person}的${desc.relTerm}` };
+        }
         const r = queryPersonsByRelation(person, desc.relTerm); if (!r.ok) return r;
         names = r.matches.map(m => m.name); descText = `${person}的${desc.relTerm}`;
     } else if (Array.isArray(desc.path) && desc.path.length) {
@@ -732,8 +804,14 @@ async function aiCallAgent(text) {
     window._lastIR = ir; return execIR(ir);
 }
 
+// 【改动 1】tryParseTwoDescriptions 前置条件：只处理恰好两人、非集合类问句
 function tryParseTwoDescriptions(text) {
     if (!peopleData) return null;
+    const _found = findNamesInText(text);
+    const _unique = [...new Set(_found.map(f => f.name))];
+    if (_unique.length !== 2) return null;
+    if (/所有|之间|各自|分别|几|多少/.test(text)) return null;
+
     const parts = text.split(/[和跟与]/);
     if (parts.length < 2) return null;
     const names = Object.keys(peopleData).sort((a, b) => b.length - a.length);
