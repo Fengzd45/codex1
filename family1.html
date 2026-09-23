@@ -16,9 +16,10 @@
         .folder-status { font-size: 0.85rem; font-weight: bold; }
         .folder-btn { background: #8b5a2b; color: white; border: none; padding: 8px 20px; border-radius: 30px; cursor: pointer; font-size: 0.85rem; }
         .folder-btn:disabled { opacity: 0.6; cursor: default; background: #aaa; }
-        .input-area { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .input-area { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: flex-start; }
+        .input-area textarea { flex: 1; padding: 12px 16px; font-size: 1rem; border: 1px solid #ddd; border-radius: 16px; outline: none; resize: vertical; min-height: 48px; font-family: inherit; }
         .input-area input { flex: 1; padding: 12px 16px; font-size: 1rem; border: 1px solid #ddd; border-radius: 30px; outline: none; }
-        .input-area button { background: #8b5a2b; color: white; border: none; padding: 12px 24px; border-radius: 30px; cursor: pointer; font-weight: bold; }
+        .input-area button { background: #8b5a2b; color: white; border: none; padding: 12px 24px; border-radius: 30px; cursor: pointer; font-weight: bold; white-space: nowrap; }
         .input-area button:disabled { opacity: 0.5; cursor: not-allowed; background: #aaa; }
         .stat-btn { background: #2c5a2c; }
         #micBtn.listening { background: #c0392b; animation: micPulse 1s infinite; }
@@ -64,6 +65,7 @@
         .stat-summary { background: #f0e8d8; border-radius: 20px; padding: 8px 16px; margin-bottom: 16px; display: inline-block; font-size: 0.85rem; }
         #mediaModal { z-index: 1001; }
         .debug-banner { font-size:0.7rem; color:#888; background:#f0e8d8; padding:6px 10px; border-radius:8px; margin-bottom:10px; word-break:break-all; }
+        .hint { font-size: 0.7rem; color: #999; margin-top: 4px; }
     </style>
 </head>
 <body>
@@ -82,7 +84,7 @@
             <div>• 初始树包含本人、上三辈祖先、下三辈后代、配偶的父母及祖父母。<br>• 单击父亲或母亲节点，动态显示其所有其他子女（兄弟姐妹）。<br>• 单击兄弟姐妹节点，动态显示其子女（堂表兄妹）。再次单击收起。<br>• 无子女节点打开多媒体资料弹窗。<br>• 支持鼠标/手指拖拽、滚轮/双指缩放。<br>• 顶部输入框可直接说话或打字，如"冯宗德和张三是什么关系"、"冯宗德的表弟是谁"、"冯宗德的儿子和冯宗流的母亲是什么关系"、或只说一个姓名查完整关系树。<br>• 勾选"🔊 语音朗读结果"会把查询结果读出来。<br>• 「手动模式」里是分别输入姓名/两人关系/按称呼找人的传统表单，以及图形家族树、资料统计入口。</div>
         </details>
         <div class="input-area">
-            <input type="text" id="voiceQueryInput" placeholder="说话或打字，比如“冯宗德的儿子和冯宗流的母亲是什么关系”" disabled>
+            <textarea id="voiceQueryInput" placeholder="说话或打字，比如“冯宗德的儿子和冯宗流的母亲是什么关系”" disabled rows="2"></textarea>
             <button id="micBtn" disabled>🎤 语音</button>
             <button id="voiceQueryBtn" disabled>💬 查询</button>
         </div>
@@ -258,7 +260,6 @@ function getSpouseWithPrefix(rel, baseSex) {
 }
 
 function getRelationship(start, target, pathPersons, ops, people) {
-    // 【改动 3】把 sons/daughters 归一化为 ch，让分支判断统一
     ops = ops.map(op => (op === 'sons' || op === 'daughters') ? 'ch' : op);
 
     const upSteps = ops.filter(op => op === 'f' || op === 'm').length;
@@ -456,7 +457,6 @@ function parseRelTermToPath(term) {
     return path.length > 1 ? path : null;
 }
 
-// ===== 【改动 4.1】新增：以 startPerson 为起点动态展开复合关系词 =====
 function expandRelTerm(term, startPerson) {
     if (!term || !startPerson) return null;
     let i = 0, currentPaths = [[]];
@@ -482,7 +482,6 @@ function expandRelTerm(term, startPerson) {
     }
     return results.length ? results : null;
 }
-// ==================================================================
 
 function validateRelTerm(term) {
     if (!term) return null;
@@ -499,7 +498,6 @@ const RELATION_SYNONYM_MAP = {
     '伯父':['大爷','伯伯','大伯'],'叔父':['叔叔','叔'],'姑母':['姑姑','姑妈'],'舅父':['舅舅','舅'],'姨母':['姨妈','姨','姨娘'],'侄子':['侄儿'],'嫂':['嫂子','嫂嫂'],'弟媳':['弟妹'],
     '伯母':['大娘','伯娘','大妈'],'叔母':['婶婶','婶子','婶母'],'姑父':['姑丈'],'舅母':['舅妈'],'姨父':['姨丈'],'儿媳':['媳妇'],'女婿':['姑爷'],'曾孙':['重孙'],'曾孙女':['重孙女'],'配偶':['老婆','妻子','老公','丈夫']
 };
-// 【改动 6】补全堂表亲歧义映射
 const RELATION_AMBIGUOUS_MAP = {
     '表哥':['姑表兄','舅表兄','姨表兄'],'表兄':['姑表兄','舅表兄','姨表兄'],'表弟':['姑表弟','舅表弟','姨表弟'],'表姐':['姑表姐','舅表姐','姨表姐'],'表妹':['姑表妹','舅表妹','姨表妹'],'表兄弟':['姑表兄弟','舅表兄弟','姨表兄弟'],'表姐妹':['姑表姐妹','舅表姐妹','姨表姐妹'],
     '堂哥':['堂兄'],'堂弟':['堂弟'],'堂姐':['堂姐'],'堂妹':['堂妹'],'堂兄弟':['堂兄弟'],'堂姐妹':['堂姐妹']
@@ -567,7 +565,6 @@ const RELATION_STEP_FNS = {
 };
 const RELATION_STEP_LABELS = { father:'父亲', mother:'母亲', spouse:'配偶', children:'子女', sons:'儿子', daughters:'女儿', siblings:'兄弟姐妹', older_brothers:'哥哥', younger_brothers:'弟弟', older_sisters:'姐姐', younger_sisters:'妹妹' };
 
-// ===== 【改动 5】新增：整链归并成中文称谓 =====
 function summarizeChain(steps) {
     const n = steps.length;
     if (!n) return '';
@@ -586,7 +583,6 @@ function summarizeChain(steps) {
     if (n === 3 && steps[2] === 'spouse' && (steps[1] === 'daughters' || steps[1] === 'sons')) return '姐妹的配偶/兄弟的配偶';
     return steps.map(s => RELATION_STEP_LABELS[s] || s).join('的');
 }
-// ============================================
 
 function walkRelationChain(startName, steps) {
     if (!peopleData[startName]) return { ok: false, message: `"${startName}" 不在家谱中。` };
@@ -647,15 +643,68 @@ function findNamesInText(text) {
     }
     return found;
 }
+
+// 修复：支持同名两侧 + 补全问句
+function normalizeQueryText(text) {
+    text = (text || '').trim();
+    // 如果以“和XXX”结尾，补“是什么关系”
+    if (/和[\u4e00-\u9fa5]{2,4}$/.test(text)) {
+        text += '是什么关系';
+    }
+    // 如果以“和XXX是什么”结尾，补“关系”
+    else if (/和[\u4e00-\u9fa5]{2,4}是什么$/.test(text)) {
+        text += '关系';
+    }
+    return text;
+}
+
+function tryParseTwoDescriptions(text) {
+    if (!peopleData) return null;
+    const _found = findNamesInText(text);
+    const _unique = [...new Set(_found.map(f => f.name))];
+    if (_unique.length === 0) return null;
+    // 允许同名，只要句子里有“和/跟/与”即可
+    if (!/[和跟与]/.test(text)) return null;
+    if (/所有|之间|各自|分别|几|多少/.test(text)) return null;
+
+    const parts = text.split(/[和跟与]/);
+    if (parts.length < 2) return null;
+    const names = Object.keys(peopleData).sort((a, b) => b.length - a.length);
+    const parseSide = (s) => {
+        for (const n of names) {
+            const idx = s.indexOf(n); if (idx === -1) continue;
+            const after = s.slice(idx + n.length), m = after.match(/^的([^\s，,。.？?！!]+?)(?:是|有|什么|谁|多少|几个|哪些|$)/);
+            if (m) { let relTerm = m[1].replace(/[的是谁有哪些？?，,。.\s]/g, '').trim(); const path = parseRelTermToPath(relTerm); return path ? { person: n, path } : (relTerm ? { person: n, relTerm } : { person: n }); }
+            return { person: n };
+        }
+        return null;
+    };
+    if (parts.length === 2) {
+        const left = parseSide(parts[0]), right = parseSide(parts[1]);
+        return (left && right && (left.relTerm || left.path || right.relTerm || right.path)) ? { type: 'relation_between', left, right } : null;
+    }
+    // 多个“和”时，取最后一个作为分隔
+    const lastAndIdx = text.lastIndexOf(parts[parts.length - 1]);
+    if (lastAndIdx > 0) {
+        const leftPart = text.slice(0, lastAndIdx).replace(/[和跟与]/g, '、');
+        const rightPart = text.slice(lastAndIdx + 1);
+        const left = parseSide(leftPart), right = parseSide(rightPart);
+        if (left && right && (left.relTerm || left.path || right.relTerm || right.path)) {
+            return { type: 'relation_between', left, right };
+        }
+    }
+    return null;
+}
+
 function parseAndRunNaturalQuery(text) {
     text = (text || '').trim(); if (!text) return { ok: false, message: '请输入或说出查询内容。' };
     if (!peopleData) return { ok: false, message: '数据未加载，请先点击「加载资料库」。' };
+    text = normalizeQueryText(text);
     if (text.includes('谁称呼') || text.includes('谁叫') || text.includes('谁喊')) return { ok: false, type: 'unsupported', message: '暂不支持反向查询，请尝试正向查询（例如"冯宗德叫谁姑父"）。' };
     const found = findNamesInText(text), uniqueNames = [...new Set(found.map(f => f.name))];
     if (uniqueNames.length >= 2) return { ...queryPairRelation(found[0].name, found.find(f => f.name !== found[0].name).name), type: 'pair' };
     if (uniqueNames.length === 1) {
         const name = uniqueNames[0];
-        // 【改动 2】加强清洗 + 补 set_relation 分支
         let rest = text.replace(name, '')
             .replace(/[的是谁有哪些哪个几个几位呀啊吗呢？?，,。.！!\s]/g, '')
             .replace(/自己|所有|之间|各自|分别|全部|关系/g, '')
@@ -724,7 +773,6 @@ function runNaturalQuery(text) {
     if (document.getElementById('ttsToggle').checked) speak(speakText || (result && result.message) || '');
 }
 
-// 【改动 4.2】prompt：优先用 relTerm，不再让 LLM 自己展开 path
 const IR_SYSTEM_PROMPT = `你是一个"家谱问句翻译器"。你的唯一任务是：把用户的中文家谱问句翻译成一个 JSON 对象。
 你不需要回答问题，不需要解释，不需要调用任何工具，只输出 JSON。
 【输出格式】只允许下面几种 type：
@@ -745,7 +793,6 @@ function fetchWithTimeout(url, options, timeout) {
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeout);
     return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
 }
-// 【改动 4.3】resolveDescription 优先用 expandRelTerm
 function resolveDescription(desc) {
     if (!desc || !desc.person) return { ok: false, message: '缺少起点姓名。' };
     const person = String(desc.person).trim(); if (!peopleData[person]) return { ok: false, message: `"${person}" 不在家谱中。` };
@@ -804,43 +851,8 @@ async function aiCallAgent(text) {
     window._lastIR = ir; return execIR(ir);
 }
 
-// 【改动 1】tryParseTwoDescriptions 前置条件：只处理恰好两人、非集合类问句
-function tryParseTwoDescriptions(text) {
-    if (!peopleData) return null;
-    const _found = findNamesInText(text);
-    const _unique = [...new Set(_found.map(f => f.name))];
-    if (_unique.length !== 2) return null;
-    if (/所有|之间|各自|分别|几|多少/.test(text)) return null;
-
-    const parts = text.split(/[和跟与]/);
-    if (parts.length < 2) return null;
-    const names = Object.keys(peopleData).sort((a, b) => b.length - a.length);
-    const parseSide = (s) => {
-        for (const n of names) {
-            const idx = s.indexOf(n); if (idx === -1) continue;
-            const after = s.slice(idx + n.length), m = after.match(/^的([^\s，,。.？?！!]+?)(?:是|有|什么|谁|多少|几个|哪些|$)/);
-            if (m) { let relTerm = m[1].replace(/[的是谁有哪些？?，,。.\s]/g, '').trim(); const path = parseRelTermToPath(relTerm); return path ? { person: n, path } : (relTerm ? { person: n, relTerm } : { person: n }); }
-            return { person: n };
-        }
-        return null;
-    };
-    if (parts.length === 2) {
-        const left = parseSide(parts[0]), right = parseSide(parts[1]);
-        return (left && right && (left.relTerm || left.path || right.relTerm || right.path)) ? { type: 'relation_between', left, right } : null;
-    }
-    const lastAndIdx = text.lastIndexOf(parts[parts.length - 1]);
-    if (lastAndIdx > 0) {
-        const leftPart = text.slice(0, lastAndIdx).replace(/[和跟与]/g, '、');
-        const rightPart = text.slice(lastAndIdx + 1);
-        const left = parseSide(leftPart), right = parseSide(rightPart);
-        if (left && right && (left.relTerm || left.path || right.relTerm || right.path)) {
-            return { type: 'relation_between', left, right };
-        }
-    }
-    return null;
-}
-
 async function runNaturalQueryAgent(text) {
+    text = normalizeQueryText(text);
     text = (text || '').trim(); if (!text) return;
     if (!peopleData) { outputPre.innerHTML = '<pre>数据未加载，请先点击「加载资料库」。</pre>'; return; }
     const correctedText = correctNamesByPinyin(text); if (correctedText !== text) text = correctedText;
@@ -869,7 +881,16 @@ function setupSpeechRecognition() {
         r.onstart = () => { isListening = true; queryTriggered = false; document.getElementById('voiceQueryInput').value = ''; micBtn.classList.add('listening'); micStatus.textContent = '🎙️ 正在听...'; clearTimeout(autoStopTimer); autoStopTimer = setTimeout(() => { try { r.stop(); } catch(e){} }, 10000); };
         r.onresult = (e) => { let transcript = ''; for (let i = 0; i < e.results.length; i++) transcript += e.results[i][0].transcript; document.getElementById('voiceQueryInput').value = transcript; if (e.results[e.results.length - 1].isFinal) { queryTriggered = true; micStatus.textContent = '✅ 识别完成，正在查询...'; runNaturalQueryAgent(transcript); } };
         r.onerror = (e) => { resetListeningUI(`⚠️ 语音识别出错：${e.error}`); };
-        r.onend = () => { const wasTriggered = queryTriggered; resetListeningUI(null); currentRecognizer = null; if (!wasTriggered) { const text = document.getElementById('voiceQueryInput').value.trim(); if (text) { micStatus.textContent = '✅ 已结束，正在查询...'; runNaturalQueryAgent(text); } else micStatus.textContent = '⚠️ 没有识别到内容。'; } };
+        r.onend = () => {
+            const wasTriggered = queryTriggered;
+            resetListeningUI(null);
+            currentRecognizer = null;
+            if (!wasTriggered) {
+                const text = normalizeQueryText(document.getElementById('voiceQueryInput').value.trim());
+                if (text) { micStatus.textContent = '✅ 已结束，正在查询...'; runNaturalQueryAgent(text); }
+                else micStatus.textContent = '⚠️ 没有识别到内容。';
+            }
+        };
         return r;
     }
     micBtn.addEventListener('click', () => {
@@ -881,7 +902,7 @@ function setupSpeechRecognition() {
 }
 setupSpeechRecognition();
 document.getElementById('voiceQueryBtn').addEventListener('click', () => runNaturalQueryAgent(document.getElementById('voiceQueryInput').value.trim()));
-document.getElementById('voiceQueryInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') runNaturalQueryAgent(e.target.value.trim()); });
+document.getElementById('voiceQueryInput').addEventListener('keypress', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); runNaturalQueryAgent(e.target.value.trim()); } });
 
 const isOnline = window.location.protocol === 'https:';
 const GITHUB_BASE = 'https://fengzd45.github.io/codex1/%E8%B5%84%E6%96%99/';
