@@ -405,33 +405,20 @@ function printRelationshipsWithClick(startName, relations, people) {
 
 const REL_TOKEN_MAP = {
     '父亲':['father'],'爸爸':['father'],'爸':['father'],'爹':['father'],'母亲':['mother'],'妈妈':['mother'],'妈':['mother'],'娘':['mother'],
-    '妻子':['spouse'],'老婆':['spouse'],'配偶':['spouse'],'丈夫':['spouse'],'老公':['spouse'],'儿子':['sons'],'儿':['sons'],
+    '妻子':['spouse'],'老婆':['spouse'],'自己的老婆':['spouse'],'自己老婆':['spouse'],'配偶':['spouse'],'丈夫':['spouse'],'老公':['spouse'],
+    '儿子':['sons'],'儿':['sons'],'孙儿':['sons','sons'],'孙子':['sons','sons'],'孙女':['sons','daughters'],
     '女儿':['daughters'],'闺女':['daughters'],'哥哥':['older_brothers'],'哥':['older_brothers'],'弟弟':['younger_brothers'],'弟':['younger_brothers'],
     '姐姐':['older_sisters'],'姐':['older_sisters'],'妹妹':['younger_sisters'],'妹':['younger_sisters'],'子女':['children'],'孩子':['children'],
     '兄弟':['siblings'],'姐妹':['siblings'],'外婆':['mother','mother'],'姥姥':['mother','mother'],'外公':['mother','father'],'姥爷':['mother','father'],
     '奶奶':['father','mother'],'爷爷':['father','father'],'岳父':['spouse','father'],'老丈人':['spouse','father'],'岳母':['spouse','mother'],'丈母娘':['spouse','mother'],
     '公公':['spouse','father'],'婆婆':['spouse','mother'],'儿媳妇':['sons','spouse'],'儿媳':['sons','spouse'],'女婿':['daughters','spouse'],
-    '堂兄弟': ['father', 'children', 'sons'],
-    '堂兄': ['father', 'children', 'sons'],
-    '堂哥': ['father', 'children', 'sons'],
-    '堂弟': ['father', 'children', 'sons'],
-    '堂姐': ['father', 'children', 'daughters'],
-    '堂妹': ['father', 'children', 'daughters'],
-    '表兄弟': ['mother', 'children', 'sons'],
-    '表哥': ['mother', 'children', 'sons'],
-    '表弟': ['mother', 'children', 'sons'],
-    '表姐': ['mother', 'children', 'daughters'],
-    '表妹': ['mother', 'children', 'daughters'],
-    '内侄': ['spouse', 'siblings', 'sons'],
-    '内侄女': ['spouse', 'siblings', 'daughters'],
-    '外甥媳妇': ['siblings', 'daughters', 'spouse'],
-    '侄女婿': ['siblings', 'sons', 'spouse'],
-    '亲家母': ['children', 'spouse', 'mother'],
-    '亲家公': ['children', 'spouse', 'father'],
-    '孙女婿': ['sons', 'daughters', 'spouse'],
-    '孙媳妇': ['sons', 'sons', 'spouse'],
-    '外孙媳妇': ['daughters', 'sons', 'spouse'],
-    '外孙女婿': ['daughters', 'daughters', 'spouse']
+    '堂兄弟':['father','siblings','sons'],'堂兄':['father','siblings','sons'],'堂哥':['father','siblings','sons'],'堂弟':['father','siblings','sons'],
+    '堂姐':['father','siblings','daughters'],'堂妹':['father','siblings','daughters'],
+    '表兄弟':['mother','siblings','sons'],'表哥':['mother','siblings','sons'],'表弟':['mother','siblings','sons'],
+    '表姐':['mother','siblings','daughters'],'表妹':['mother','siblings','daughters'],
+    '内侄':['spouse','siblings','sons'],'内侄女':['spouse','siblings','daughters'],'外甥媳妇':['siblings','daughters','spouse'],'侄女婿':['siblings','sons','spouse'],
+    '亲家母':['sons','spouse','mother'],'亲家公':['sons','spouse','father'],'孙女婿':['sons','daughters','spouse'],'孙媳妇':['sons','sons','spouse'],
+    '外孙媳妇':['daughters','sons','spouse'],'外孙女婿':['daughters','daughters','spouse']
 };
 const REL_KEYS_SORTED = Object.keys(REL_TOKEN_MAP).sort((a,b) => b.length - a.length);
 
