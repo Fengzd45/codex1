@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>家族智能管家 · AI 版</title>
+    <title>家族关系 · 上三辈下三辈 + 点父母出兄弟姐妹</title>
     <style>
         * { box-sizing: border-box; }
         body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f0e8; margin: 0; padding: 16px; }
@@ -16,18 +16,13 @@
         .folder-status { font-size: 0.85rem; font-weight: bold; }
         .folder-btn { background: #8b5a2b; color: white; border: none; padding: 8px 20px; border-radius: 30px; cursor: pointer; font-size: 0.85rem; }
         .folder-btn:disabled { opacity: 0.6; cursor: default; background: #aaa; }
-        
-        .quick-prompts { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; white-space: nowrap; -webkit-overflow-scrolling: touch; }
-        .quick-prompts::-webkit-scrollbar { display: none; }
-        .quick-btn { background: #f0e8d8; color: #8b5a2b; border: 1px solid #d2c0a8; padding: 6px 12px; border-radius: 20px; font-size: 0.75rem; cursor: pointer; flex-shrink: 0; transition: background 0.2s; }
-        .quick-btn:hover { background: #e0d6c0; }
-
-        .input-area { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
-        .input-area input { flex: 1; padding: 12px 16px; font-size: 1rem; border: 1px solid #ddd; border-radius: 30px; outline: none; min-width: 200px; }
-        .input-area button { background: #8b5a2b; color: white; border: none; padding: 12px 20px; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 0.9rem; white-space: nowrap; }
+        .input-area { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .input-area input { flex: 1; padding: 12px 16px; font-size: 1rem; border: 1px solid #ddd; border-radius: 30px; outline: none; }
+        .input-area button { background: #8b5a2b; color: white; border: none; padding: 12px 24px; border-radius: 30px; cursor: pointer; font-weight: bold; }
         .input-area button:disabled { opacity: 0.5; cursor: not-allowed; background: #aaa; }
-        
         .stat-btn { background: #2c5a2c; }
+        #micBtn.listening { background: #c0392b; animation: micPulse 1s infinite; }
+        @keyframes micPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
         .output { background: #faf8f0; border-radius: 16px; padding: 16px; max-height: 600px; overflow-y: auto; font-size: 0.85rem; line-height: 1.5; border: 1px solid #e0d6c0; }
         .output pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-family: monospace; font-size: 0.8rem; }
         .clickable-name { cursor: pointer; color: #8b5a2b; text-decoration: underline dotted; transition: all 0.2s; }
@@ -35,8 +30,6 @@
         .footer { text-align: center; padding: 16px; font-size: 0.7rem; color: #aaa; border-top: 1px solid #eee; }
         .to-top { position: fixed; bottom: 20px; right: 20px; background: #8b5a2b; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0.7; z-index: 100; }
         .to-top:hover { opacity: 1; }
-        audio, video { max-width: 100%; }
-
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; visibility: hidden; opacity: 0; transition: visibility 0.2s, opacity 0.2s; }
         .modal-overlay.active { visibility: visible; opacity: 1; }
         .modal-container { background: #fffef7; border-radius: 32px; width: 90%; max-width: 900px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); overflow: hidden; }
@@ -45,7 +38,6 @@
         .modal-close { background: none; border: none; color: white; font-size: 28px; cursor: pointer; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 40px; }
         .modal-close:hover { background: rgba(255, 255, 255, 0.2); }
         .modal-body { flex: 1; overflow-y: auto; padding: 16px 20px; background: #fefcf5; }
-
         .file-list-modal { background: #faf8f0; border-radius: 20px; padding: 8px 0; margin-bottom: 20px; max-height: 260px; overflow-y: auto; border: 1px solid #e0d6c0; }
         .file-item-modal { display: flex; align-items: center; padding: 10px 16px; border-bottom: 1px solid #e8e0d0; cursor: pointer; transition: background 0.15s; }
         .file-item-modal:hover { background: #f0e8d8; }
@@ -57,12 +49,10 @@
         .download-link-modal { display: inline-block; margin-top: 12px; padding: 6px 14px; background: #8b5a2b; color: white; text-decoration: none; border-radius: 30px; font-size: 0.75rem; }
         details.manual { background: #fff3e0; padding: 8px 12px; border-radius: 12px; margin-bottom: 12px; font-size: 0.75rem; }
         details.manual summary { cursor: pointer; font-weight: bold; color: #8b5a2b; }
-
         #treeModal .modal-container { max-width: 95vw; max-height: 90vh; width: 95vw; }
         #treeModalBody { padding: 0; background: #fff; height: 75vh; min-height: 450px; display: flex; flex-direction: column; }
         #treeCanvasContainer { flex: 1; overflow: auto; background: #fff; position: relative; -webkit-overflow-scrolling: touch; }
         #treeCanvas { display: block; background: #fff; cursor: pointer; touch-action: none; position: absolute; top: 0; left: 0; }
-
         #statModal { z-index: 1000; }
         #statModal .modal-container { max-width: 800px; }
         .stat-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
@@ -73,18 +63,15 @@
         .stat-empty { text-align: center; color: #999; padding: 30px 0; }
         .stat-summary { background: #f0e8d8; border-radius: 20px; padding: 8px 16px; margin-bottom: 16px; display: inline-block; font-size: 0.85rem; }
         #mediaModal { z-index: 1001; }
-
-        .ai-status { font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; }
-        .ai-status.online { background: #e8f5e9; color: #2c5a2c; border: 1px solid #c8e6c9; }
-        .ai-status.offline { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
-        .ai-status.thinking { background: #fff8e1; color: #8b5a2b; border: 1px solid #ffecb3; }
+        .debug-banner { font-size:0.7rem; color:#888; background:#f0e8d8; padding:6px 10px; border-radius:8px; margin-bottom:10px; word-break:break-all; }
+        .media-entry-box { margin-top:10px; padding:8px 12px; background:#f0e8d8; border-radius:12px; font-size:0.8rem; }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
-        <h1>🤖 家族智能管家</h1>
-        <p>自然语言提问 · AI 自动纠错 · 支持语音输入与朗读</p>
+        <h1>📜 家族关系 · 上三辈下三辈 + 点父母出兄弟姐妹</h1>
+        <p>单击父/母显示兄弟姐妹，单击兄弟姐妹显示堂表兄妹 | 拖拽缩放 | 查询关系 | 多媒体资料</p>
     </div>
     <div class="content">
         <div class="folder-select-area">
@@ -93,33 +80,19 @@
         </div>
         <details class="manual">
             <summary>📖 使用说明</summary>
-            <div>• <strong>AI 智能理解</strong>：用口语直接问，比如“冯宗德的爷爷是谁”、“我想看冯宗德的照片”、“冯宗德和张三是什么关系”。<br>
-            • <strong>自动纠错</strong>：语音识别错别字也没关系，AI 会自动纠正，比如把“风中德”识别为“冯宗德”。<br>
-            • <strong>多媒体</strong>：说“看冯宗德的资料”会自动弹出他的照片、视频、录音。<br>
-            • <strong>语音输入</strong>：点输入框，用手机键盘上的麦克风图标说话，识别最准。<br>
-            • <strong>语音朗读</strong>：勾选“🔊 语音朗读结果”，AI 的回复会读出来。<br>
-            • <strong>手动模式</strong>：下方表单支持两人关系查询、按称呼找人、图形家族树、资料统计。</div>
+            <div>• 初始树包含本人、上三辈祖先、下三辈后代、配偶的父母及祖父母。<br>• 单击父亲或母亲节点，动态显示其所有其他子女（兄弟姐妹）。<br>• 单击兄弟姐妹节点，动态显示其子女（堂表兄妹）。再次单击收起。<br>• 无子女节点打开多媒体资料弹窗。<br>• 支持鼠标/手指拖拽、滚轮/双指缩放。<br>• 顶部输入框可直接说话或打字，如"冯宗德和张三是什么关系"、"冯宗德的表弟是谁"、"冯宗德的儿子和冯宗流的母亲是什么关系"、或只说一个姓名查完整关系树。<br>• 勾选"🔊 语音朗读结果"会把查询结果读出来。<br>• 「手动模式」里是分别输入姓名/两人关系/按称呼找人的传统表单，以及图形家族树、资料统计入口。<br>• 每次查询结果下方都会出现多媒体资料入口：单人结果给被查人资料，多人结果给发起查询人的资料。</div>
         </details>
-
-        <div class="quick-prompts">
-            <button class="quick-btn" onclick="quickQuery('冯宗德的爷爷是谁')">冯宗德的爷爷</button>
-            <button class="quick-btn" onclick="quickQuery('冯宗德和张三是什么关系')">查两人关系</button>
-            <button class="quick-btn" onclick="quickQuery('我想看冯宗德的资料')">看冯宗德资料</button>
-            <button class="quick-btn" onclick="quickQuery('冯宗德的表弟是谁')">找表弟</button>
-            <button class="quick-btn" onclick="quickQuery('冯宗德')">查冯宗德全部关系</button>
-        </div>
-
         <div class="input-area">
-            <input type="text" id="voiceQueryInput" placeholder="和管家说点什么吧，比如「冯宗德的爷爷是谁」" disabled>
-            <button id="micBtn" disabled title="点击唤起键盘，使用输入法语音说话">🎤 语音</button>
+            <input type="text" id="voiceQueryInput" placeholder="说话或打字，比如“冯宗德的儿子和冯宗流的母亲是什么关系”" disabled>
+            <button id="micBtn" disabled>🎤 语音</button>
             <button id="voiceQueryBtn" disabled>💬 查询</button>
         </div>
+        <div style="margin:-6px 0 10px; font-size:0.75rem; color:#999;" id="aiStatusLine"></div>
         <div class="input-area" style="margin-top:-8px;">
             <label style="display:flex; align-items:center; gap:6px; font-size:0.8rem; color:#666;">
                 <input type="checkbox" id="ttsToggle" style="width:auto;"> 🔊 语音朗读结果
             </label>
             <span id="micStatus" style="font-size:0.8rem; color:#999;"></span>
-            <span id="aiStatus" class="ai-status offline">🤖 AI 管家待命中</span>
         </div>
         <div class="output" id="output"><pre>请先点击「加载资料库」授权家谱数据...</pre></div>
         <details class="manual" style="margin-top:14px;">
@@ -142,7 +115,7 @@
             </div>
         </details>
     </div>
-    <div class="footer">家族智能管家 | AI 版 | 点击姓名弹窗查看资料</div>
+    <div class="footer">家族关系 | 点击姓名弹窗查看资料 | 线上模式自动加载 GitHub 资料</div>
 </div>
 <div class="to-top" id="toTopBtn" style="display: none;">↑</div>
 
@@ -181,25 +154,21 @@
         </div>
     </div>
 </div>
-
+<script src="https://unpkg.com/pinyin-pro"></script>
 <script>
-// ====================================================================
-// 🤖 AI 管家配置区（已修复 model 字段缺失问题）
-// ====================================================================
-const AGENT_CONFIG = {
-    workerUrl: 'https://family-ai-proxy.fengzd8.workers.dev',
-    enabled: true,
-    timeout: 60000 // 60秒超时，给 AI 足够的思考时间
-};
-// ====================================================================
+const AGENT_CONFIG = { workerUrl: 'https://family-ai-proxy.fengzd8.workers.dev', enabled: true, timeout: 5000 };
 
-// --------------------- Person类与关系构建 ---------------------
 class Person {
     constructor(data) {
-        this.name = data.n; this.sex = data.s; this.father = data.f || ""; this.mother = data.m || ""; this.spouse = data.sp || []; this.info = data.info || "";
-        this.birthYear = this._extractYear(this.info); this.parents = []; this.children = []; this.fatherObj = null; this.motherObj = null;
+        this.name = data.n; this.sex = data.s; this.father = data.f || ""; this.mother = data.m || "";
+        this.spouse = data.sp || []; this.info = data.info || ""; this.birthYear = this._extractYear(this.info);
+        this.parents = []; this.children = []; this.fatherObj = null; this.motherObj = null;
     }
-    _extractYear(info) { if (!info) return null; const match = info.match(/(1[0-9]{3}|20[0-9]{2})/); return match ? parseInt(match[0]) : null; }
+    _extractYear(info) {
+        if (!info) return null;
+        const match = info.match(/(1[0-9]{3}|20[0-9]{2})/);
+        return match ? parseInt(match[0]) : null;
+    }
 }
 function buildRelations(people) {
     for (const p of Object.values(people)) {
@@ -210,16 +179,50 @@ function buildRelations(people) {
     return people;
 }
 function parseJsonl(text) {
-    const lines = text.split(/\r?\n/); const people = {};
-    for (const line of lines) { if (!line.trim()) continue; try { const obj = JSON.parse(line); const p = new Person(obj); people[p.name] = p; } catch(e) { console.warn("解析失败:", line, e); } }
+    const lines = text.split(/\r?\n/), people = {};
+    for (const line of lines) {
+        if (!line.trim()) continue;
+        try { const obj = JSON.parse(line), p = new Person(obj); people[p.name] = p; } catch(e) {}
+    }
     return buildRelations(people);
 }
-function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
+function escapeHtml(str) { return !str ? '' : str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
 
-// --------------------- 关系查询函数（完整保留） ---------------------
+function toPlainPinyin(str) { try { return typeof pinyinPro === 'undefined' ? str : pinyinPro.pinyin(str, { toneType: 'none', type: 'array' }).join('').toLowerCase(); } catch (e) { return str; } }
+function editDistance(a, b) {
+    const dp = []; for (let i = 0; i <= a.length; i++) { dp.push(new Array(b.length + 1).fill(0)); dp[i][0] = i; }
+    for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+    for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) dp[i][j] = Math.min(dp[i-1][j]+1, dp[i][j-1]+1, dp[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+    return dp[a.length][b.length];
+}
+function findBestPhoneticNameMatch(text) {
+    if (!peopleData || typeof pinyinPro === 'undefined') return null;
+    if (!window._namePinyinCache) window._namePinyinCache = {};
+    const cache = window._namePinyinCache, names = Object.keys(peopleData);
+    let best = null, bestScore = Infinity, bestPos = -1, bestLen = 0;
+    for (const n of names) {
+        if (n.length < 2 || n.length > text.length) continue;
+        if (!cache[n]) cache[n] = toPlainPinyin(n);
+        const namePinyin = cache[n]; if (!namePinyin) continue;
+        for (let i = 0; i + n.length <= text.length; i++) {
+            const win = text.slice(i, i + n.length); if (win === n) continue;
+            const dist = editDistance(toPlainPinyin(win), namePinyin), score = dist / Math.max(namePinyin.length, 1);
+            if (score < bestScore) { bestScore = score; best = n; bestPos = i; bestLen = n.length; }
+        }
+    }
+    return (best && bestScore <= 0.4) ? { name: best, pos: bestPos, len: bestLen } : null;
+}
+function correctNamesByPinyin(text) {
+    try {
+        if (!text || !peopleData || findNamesInText(text).length > 0) return text;
+        const m = findBestPhoneticNameMatch(text); if (!m) return text;
+        return text.slice(0, m.pos) + m.name + text.slice(m.pos + m.len);
+    } catch (e) { return text; }
+}
+
 function bfsRelationships(startName, people) {
     const start = people[startName]; if (!start) return {};
-    const visited = {}; const queue = [{ person: start, genGap: 0, pathPersons: [], pathOps: [] }];
+    const visited = {}, queue = [{ person: start, genGap: 0, pathPersons: [], pathOps: [] }];
     while (queue.length) {
         const { person: cur, genGap, pathPersons, pathOps } = queue.shift();
         if (visited[cur.name]) continue;
@@ -231,12 +234,14 @@ function bfsRelationships(startName, people) {
     }
     return visited;
 }
-function compareBirth(a, b) { if (a.birthYear !== null && b.birthYear !== null) return b.birthYear - a.birthYear; return 0; }
+function compareBirth(a, b) { return (a.birthYear !== null && b.birthYear !== null) ? b.birthYear - a.birthYear : 0; }
+
 const baseSpouseMap = new Map();
 const baseSpouseMapData = [
-    ["兄","男","嫂"], ["弟","男","弟媳"], ["姐","女","姐夫"], ["妹","女","妹夫"], ["伯父","男","伯母"], ["叔父","男","叔母"], ["姑母","女","姑父"], ["舅父","男","舅母"], ["姨母","女","姨父"], ["祖父","男","祖母"], ["祖母","女","祖父"], ["外祖父","男","外祖母"], ["外祖母","女","外祖父"], ["曾祖父","男","曾祖母"], ["曾祖母","女","曾祖父"], ["外曾祖父","男","外曾祖母"], ["外曾祖母","女","外曾祖父"], ["高祖父","男","高祖母"], ["高祖母","女","高祖父"], ["外高祖父","男","外高祖母"], ["外高祖母","女","外高祖父"], ["天祖父","男","天祖母"], ["天祖母","女","天祖父"], ["烈祖","男","烈祖母"], ["烈祖母","女","烈祖"], ["太祖","男","太祖母"], ["太祖母","女","太祖"], ["远祖","男","远祖母"], ["远祖母","女","远祖"], ["鼻祖","男","鼻祖母"], ["鼻祖母","女","鼻祖"], ["儿子","男","儿媳"], ["女儿","女","女婿"], ["孙子","男","孙媳"], ["孙女","女","孙女婿"], ["曾孙","男","曾孙媳"], ["曾孙女","女","曾孙女婿"], ["玄孙","男","玄孙媳"], ["玄孙女","女","玄孙女婿"], ["来孙","男","来孙媳"], ["来孙女","女","来孙女婿"], ["晜孙","男","晜孙媳"], ["晜孙女","女","晜孙女婿"], ["仍孙","男","仍孙媳"], ["仍孙女","女","仍孙女婿"], ["云孙","男","云孙媳"], ["云孙女","女","云孙女婿"], ["耳孙","男","耳孙媳"], ["耳孙女","女","耳孙女婿"], ["侄子","男","侄媳"], ["侄女","女","侄女婿"], ["外甥","男","外甥媳"], ["外甥女","女","外甥女婿"], ["亲家公","男","亲家母"], ["亲家母","女","亲家公"], ["内兄","男","内嫂"], ["内弟","男","内弟媳"], ["内姐","女","内姐夫"], ["内妹","女","内妹夫"], ["侄孙","男","侄孙媳"], ["侄孙女","女","侄孙女婿"], ["外甥孙","男","外甥孙媳"], ["外甥孙女","女","外甥孙女婿"], ["侄曾孙","男","侄曾孙媳"], ["侄曾孙女","女","侄曾孙女婿"], ["外甥曾孙","男","外甥曾孙媳"], ["外甥曾孙女","女","外甥曾孙女婿"], ["兄弟","男","兄弟的配偶"], ["姐妹","女","姐妹的配偶"], ["伯叔","男","伯叔的配偶"], ["姑","女","姑的配偶"], ["舅","男","舅的配偶"], ["姨","女","姨的配偶"]
+    ["兄","男","嫂"],["弟","男","弟媳"],["姐","女","姐夫"],["妹","女","妹夫"],["伯父","男","伯母"],["叔父","男","叔母"],["姑母","女","姑父"],["舅父","男","舅母"],["姨母","女","姨父"],["祖父","男","祖母"],["祖母","女","祖父"],["外祖父","男","外祖母"],["外祖母","女","外祖父"],["曾祖父","男","曾祖母"],["曾祖母","女","曾祖父"],["高祖父","男","高祖母"],["高祖母","女","高祖父"],["儿子","男","儿媳"],["女儿","女","女婿"],["孙子","男","孙媳"],["孙女","女","孙女婿"],["曾孙","男","曾孙媳"],["曾孙女","女","曾孙女婿"],["侄子","男","侄媳"],["侄女","女","侄女婿"],["外甥","男","外甥媳"],["外甥女","女","外甥女婿"],["亲家公","男","亲家母"],["亲家母","女","亲家公"],["兄弟","男","兄弟的配偶"],["姐妹","女","姐妹的配偶"],["伯叔","男","伯叔的配偶"],["姑","女","姑的配偶"],["舅","男","舅的配偶"],["姨","女","姨的配偶"]
 ];
 for (const [rel, sex, sp] of baseSpouseMapData) baseSpouseMap.set([rel, sex].join('|'), sp);
+
 function getSpouseWithPrefix(rel, baseSex) {
     const prefixes = ["堂","姑表","舅表","姨表","姻","内","亲家","外","岳","外岳","夫家","妻家","再从","族","远"];
     for (const prefix of prefixes) {
@@ -246,139 +251,243 @@ function getSpouseWithPrefix(rel, baseSex) {
             if ((base === "姐妹" || base === "姐" || base === "妹") && baseSex === '女') return prefix + base + "夫";
             const key = [base, baseSex].join('|');
             if (baseSpouseMap.has(key)) return prefix + baseSpouseMap.get(key);
-            const sub = getSpouseWithPrefix(base, baseSex);
-            if (sub) return prefix + sub;
+            const sub = getSpouseWithPrefix(base, baseSex); if (sub) return prefix + sub;
         }
     }
     return null;
 }
+
 function getRelationship(start, target, pathPersons, ops, people) {
     const upSteps = ops.filter(op => op === 'f' || op === 'm').length;
     const downSteps = ops.filter(op => op === 'ch').length;
     const spCount = ops.filter(op => op === 'sp').length;
+    const hasSpouse = spCount > 0;
+
     if (ops.length === 1 && ops[0] === 'sp') return "配偶";
-    if (ops.length === 2 && ops[0] === 'ch' && ops[1] === 'sp') { const child = pathPersons[0] || null; if (child) return child.sex === '男' ? (target.sex === '女' ? "儿媳" : "女婿") : (target.sex === '男' ? "女婿" : "儿媳"); return target.sex === '女' ? "儿媳" : "女婿"; }
-    if (ops.length >= 3 && ops[0]==='ch' && ops[1]==='sp' && (ops[2]==='f' || ops[2]==='m')) { const baseOps = ops.slice(2), basePersons = pathPersons.slice(2); const baseRel = getRelationship(start, target, basePersons, baseOps, people); return "亲家" + baseRel; }
+    if (ops.length === 2 && ops[0] === 'ch' && ops[1] === 'sp') {
+        const child = pathPersons[0] || null;
+        return child ? (child.sex === '男' ? (target.sex === '女' ? "儿媳" : "女婿") : (target.sex === '男' ? "女婿" : "儿媳")) : (target.sex === '女' ? "儿媳" : "女婿");
+    }
+    if (ops.length >= 3 && ops[0]==='ch' && ops[1]==='sp' && (ops[2]==='f' || ops[2]==='m')) return "亲家" + getRelationship(start, target, pathPersons.slice(2), ops.slice(2), people);
+
     if (ops.length && ops[0] === 'sp' && spCount === 1 && downSteps === 0) {
         const spouse = pathPersons[0] || null; if (!spouse) return "未知";
-        const baseOps = ops.slice(1), basePersons = pathPersons.slice(1); const relFromSpouse = getRelationship(spouse, target, basePersons, baseOps, people);
-        if (start.sex === '男') { if (spouse.sex === '女') return (baseOps.length && baseOps[0] === 'm') ? "外岳" + relFromSpouse : "岳" + relFromSpouse; else return "岳" + relFromSpouse; }
-        else { if (spouse.sex === '男') { if (relFromSpouse.includes("父")) return relFromSpouse.replace("父","公"); if (relFromSpouse.includes("母")) return relFromSpouse.replace("母","婆"); if (relFromSpouse.includes("祖父")) return relFromSpouse.replace("祖父","祖公"); if (relFromSpouse.includes("祖母")) return relFromSpouse.replace("祖母","祖婆"); return "夫家" + relFromSpouse; } else return "妻家" + relFromSpouse; }
+        const relFromSpouse = getRelationship(spouse, target, pathPersons.slice(1), ops.slice(1), people);
+        if (start.sex === '男') return (spouse.sex === '女') ? ((ops[1] === 'm') ? "外岳" + relFromSpouse : "岳" + relFromSpouse) : "岳" + relFromSpouse;
+        if (spouse.sex === '男') {
+            if (relFromSpouse.includes("父")) return relFromSpouse.replace("父","公");
+            if (relFromSpouse.includes("母")) return relFromSpouse.replace("母","婆");
+            return "夫家" + relFromSpouse;
+        }
+        return "妻家" + relFromSpouse;
     }
     if (ops.length && ops[0] === 'sp' && upSteps === 1 && downSteps === 1) {
-        const spouse = pathPersons[0];
-        if (spouse) { const diff = compareBirth(spouse, target); if (diff < 0) return target.sex === '男' ? "姻兄" : "姻姐"; else if (diff > 0) return target.sex === '男' ? "姻弟" : "姻妹"; else return target.sex === '男' ? "姻兄弟" : "姻姐妹"; }
-        return target.sex === '男' ? "姻兄弟" : "姻姐妹";
+        const diff = compareBirth(pathPersons[0], target);
+        if (diff < 0) return target.sex === '男' ? "姻兄" : "姻姐";
+        return target.sex === '男' ? (diff > 0 ? "姻弟" : "姻兄弟") : (diff > 0 ? "姻妹" : "姻姐妹");
     }
-    if (ops.length && ops[0] === 'sp' && spCount === 1) { const baseOps = ops.slice(1), basePersons = pathPersons.slice(1); const baseRel = getRelationship(start, target, basePersons, baseOps, people); return "姻" + baseRel; }
+    if (ops.length && ops[0] === 'sp' && spCount === 1) return "姻" + getRelationship(start, target, pathPersons.slice(1), ops.slice(1), people);
+
     if (downSteps === 0) {
-        const up = upSteps; const allF = ops.every(op => op === 'f');
+        const up = upSteps, allF = ops.every(op => op === 'f');
         if (up === 1) return target.sex === '男' ? "父亲" : "母亲";
-        if (up === 2) return target.sex === '男' ? (allF ? "祖父" : "外祖父") : (allF ? "祖母" : "外祖母");
-        if (up === 3) return target.sex === '男' ? (allF ? "曾祖父" : "外曾祖父") : (allF ? "曾祖母" : "外曾祖母");
-        if (up === 4) return target.sex === '男' ? (allF ? "高祖父" : "外高祖父") : (allF ? "高祖母" : "外高祖母");
-        if (up === 5) return target.sex === '男' ? (allF ? "天祖父" : "外天祖父") : (allF ? "天祖母" : "外天祖母");
-        if (up === 6) return target.sex === '男' ? "烈祖" : "烈祖母";
-        if (up === 7) return target.sex === '男' ? "太祖" : "太祖母";
-        if (up === 8) return target.sex === '男' ? "远祖" : "远祖母";
-        if (up === 9) return target.sex === '男' ? "鼻祖" : "鼻祖母";
+        if (up === 2) {
+            if (hasSpouse) return "姻亲长辈";
+            return target.sex === '男' ? (allF ? "祖父" : "外祖父") : (allF ? "祖母" : "外祖母");
+        }
+        if (up === 3) {
+            if (hasSpouse) return "姻亲长辈";
+            return target.sex === '男' ? (allF ? "曾祖父" : "外曾祖父") : (allF ? "曾祖母" : "外曾祖母");
+        }
         return (allF ? "远祖" : "外远祖") + (target.sex === '男' ? "" : "母");
     }
     if (upSteps === 0) {
-        const down = downSteps; const mapping = { 1: ["儿子","女儿"], 2: ["孙子","孙女"], 3: ["曾孙","曾孙女"], 4: ["玄孙","玄孙女"], 5: ["来孙","来孙女"], 6: ["晜孙","晜孙女"], 7: ["仍孙","仍孙女"], 8: ["云孙","云孙女"], 9: ["耳孙","耳孙女"] };
-        if (mapping[down]) return target.sex === '男' ? mapping[down][0] : mapping[down][1];
-        return target.sex === '男' ? "远孙" : "远孙女";
+        const map = { 1:["儿子","女儿"], 2:["孙子","孙女"], 3:["曾孙","曾孙女"], 4:["玄孙","玄孙女"] };
+        return map[downSteps] ? (target.sex === '男' ? map[downSteps][0] : map[downSteps][1]) : (target.sex === '男' ? "远孙" : "远孙女");
     }
     if (upSteps === 2 && downSteps === 1) {
-        if (ops.length===3 && ops[0]==='f' && ops[1]==='f' && ops[2]==='ch') { const father = pathPersons[0] || null; if (father) { const diff = compareBirth(father, target); if (target.sex === '男') return diff < 0 ? "伯父" : (diff > 0 ? "叔父" : "伯叔"); else return "姑母"; } else return target.sex === '男' ? "伯叔" : "姑母"; }
-        if (ops.length===3 && (ops[0]==='m'||ops[0]==='f') && ops[1]==='m' && ops[2]==='ch') return target.sex === '男' ? "舅父" : "姨母";
+        if (ops.join('')==='ffch') {
+            const diff = compareBirth(pathPersons[0], target);
+            if (target.sex === '男') return diff < 0 ? "伯父" : (diff > 0 ? "叔父" : "伯叔");
+            return "姑母";
+        }
+        return target.sex === '男' ? "舅父" : "姨母";
     }
-    if (upSteps === 1 && downSteps === 2) { const keyPerson = pathPersons[pathPersons.length-2] || null; const siblingSex = keyPerson ? keyPerson.sex : null; if (siblingSex === '男') return target.sex === '男' ? "侄子" : "侄女"; else if (siblingSex === '女') return target.sex === '男' ? "外甥" : "外甥女"; else return (ops[0] === 'f') ? (target.sex === '男' ? "侄子" : "侄女") : (target.sex === '男' ? "外甥" : "外甥女"); }
+    if (upSteps === 1 && downSteps === 2) {
+        const sib = pathPersons[pathPersons.length-2], sSex = sib ? sib.sex : (ops[0]==='f'?'男':'女');
+        if (sSex === '男') return target.sex === '男' ? "侄子" : "侄女";
+        return target.sex === '男' ? "外甥" : "外甥女";
+    }
     if (ops.length && ops[ops.length-1] === 'sp') {
-        const baseOps = ops.slice(0, -1), basePersons = pathPersons.slice(0, -1), basePerson = pathPersons[pathPersons.length-2] || null;
-        if (!basePerson) return "未知";
-        const baseRel = getRelationship(start, basePerson, basePersons, baseOps, people); const key = [baseRel, basePerson.sex].join('|');
+        const basePerson = pathPersons[pathPersons.length-2]; if (!basePerson) return "未知";
+        const baseRel = getRelationship(start, basePerson, pathPersons.slice(0,-1), ops.slice(0,-1), people);
+        const key = [baseRel, basePerson.sex].join('|');
         if (baseSpouseMap.has(key)) return baseSpouseMap.get(key);
-        const spouseWithPrefix = getSpouseWithPrefix(baseRel, basePerson.sex);
-        if (spouseWithPrefix) return spouseWithPrefix;
-        const diff = compareBirth(start, basePerson);
-        if ((baseRel === "兄弟" || baseRel === "弟" || baseRel === "兄") && basePerson.sex === '男') { const prefix = baseRel.length>2 ? baseRel.slice(0,-2) : ""; if (diff < 0) return "姻" + prefix + "嫂"; else if (diff > 0) return "姻" + prefix + "弟媳"; else return "姻" + prefix + "兄弟媳"; }
-        if ((baseRel === "姐妹" || baseRel === "姐" || baseRel === "妹") && basePerson.sex === '女') { const prefix = baseRel.length>2 ? baseRel.slice(0,-2) : ""; if (diff < 0) return "姻" + prefix + "姐夫"; else if (diff > 0) return "姻" + prefix + "妹夫"; else return "姻" + prefix + "姐妹夫"; }
-        if (baseRel.endsWith("父")) return "姻" + baseRel.slice(0,-1) + "母"; if (baseRel.endsWith("母")) return "姻" + baseRel.slice(0,-1) + "父"; if (baseRel.endsWith("兄")) return "姻" + baseRel.slice(0,-1) + "嫂"; if (baseRel.endsWith("弟")) return "姻" + baseRel.slice(0,-1) + "媳"; if (baseRel.endsWith("姐")) return "姻" + baseRel.slice(0,-1) + "夫"; if (baseRel.endsWith("妹")) return "姻" + baseRel.slice(0,-1) + "夫"; if (baseRel.endsWith("子")) return "姻" + baseRel.slice(0,-1) + "媳"; if (baseRel.endsWith("女")) { if (baseRel.includes("侄")) return "侄女婿"; if (baseRel.includes("外甥")) return "外甥女婿"; return baseRel + "婿"; }
+        if (getSpouseWithPrefix(baseRel, basePerson.sex)) return getSpouseWithPrefix(baseRel, basePerson.sex);
+        if (baseRel.includes("兄")) return "姻" + baseRel.replace("兄","嫂");
+        if (baseRel.includes("弟")) return "姻" + baseRel.replace("弟","媳");
+        if (baseRel.includes("姐")) return "姻" + baseRel.replace("姐","夫");
+        if (baseRel.includes("妹")) return "姻" + baseRel.replace("妹","夫");
+        if (baseRel.includes("子")) return "姻" + baseRel.replace("子","媳");
+        if (baseRel.includes("女")) return baseRel.includes("侄") ? "侄女婿" : (baseRel.includes("外甥") ? "外甥女婿" : baseRel + "婿");
         return "姻" + baseRel + "的配偶";
     }
-    if (spCount >= 2) { const baseOps = ops.filter(op => op !== 'sp'), basePersons = pathPersons.filter((_,idx) => ops[idx] !== 'sp'); const baseRel = getRelationship(start, target, basePersons, baseOps, people); return "姻亲的" + baseRel; }
     if (upSteps === downSteps) {
-        const k = upSteps;
-        if (k === 1) { const diff = compareBirth(start, target); if (target.sex === '男') return diff < 0 ? "兄" : (diff > 0 ? "弟" : "兄弟"); else return diff < 0 ? "姐" : (diff > 0 ? "妹" : "姐妹"); }
-        else { let prefix = ""; if (k > 1 && pathPersons.length > k) { const connector = pathPersons[k]; const first = ops[0]; if (first === 'f') prefix = (connector.sex === '女') ? "姑表" : "堂"; else if (first === 'm') prefix = (connector.sex === '男') ? "舅表" : "姨表"; } const diff = compareBirth(start, target); let suffix = ""; if (target.sex === '男') suffix = diff < 0 ? "兄" : (diff > 0 ? "弟" : "兄弟"); else suffix = diff < 0 ? "姐" : (diff > 0 ? "妹" : "姐妹"); return prefix + suffix; }
+        if (upSteps === 1) {
+            const diff = compareBirth(start, target);
+            if (target.sex === '男') return diff < 0 ? "兄" : (diff > 0 ? "弟" : "兄弟");
+            return diff < 0 ? "姐" : (diff > 0 ? "妹" : "姐妹");
+        }
+        let prefix = "";
+        if (pathPersons.length > upSteps) {
+            const first = ops[0], connector = pathPersons[upSteps];
+            if (first === 'f') prefix = (connector.sex === '女') ? "姑表" : "堂";
+            else if (first === 'm') prefix = (connector.sex === '男') ? "舅表" : "姨表";
+        }
+        const diff = compareBirth(start, target);
+        let suffix = target.sex === '男' ? (diff < 0 ? "兄" : (diff > 0 ? "弟" : "兄弟")) : (diff < 0 ? "姐" : (diff > 0 ? "妹" : "姐妹"));
+        return prefix + suffix;
     }
     if (!ops.includes('sp')) {
-        const diff = upSteps - downSteps; const level = Math.min(upSteps, downSteps);
-        let prefix = ""; if (level >= 1 && pathPersons.length > level) { const connector = pathPersons[level]; const first = ops[0]; if (first === 'f') prefix = (connector.sex === '女') ? "姑表" : "堂"; else if (first === 'm') prefix = (connector.sex === '男') ? "舅表" : "姨表"; }
-        let mod = ""; if (level === 1) mod = ""; else if (level === 2) mod = "堂"; else if (level === 3) mod = "再从"; else if (level === 4) mod = "族"; else mod = "远"; if (prefix) mod = "";
-        if (diff > 0) { const absDiff = diff; let base = ""; if (absDiff === 1) base = (ops[0]==='f') ? (target.sex==='男'?"伯叔":"姑") : (target.sex==='男'?"舅":"姨"); else if (absDiff === 2) base = target.sex==='男'?"祖父":"祖母"; else if (absDiff === 3) base = target.sex==='男'?"曾祖父":"曾祖母"; else if (absDiff === 4) base = target.sex==='男'?"高祖父":"高祖母"; else base = `${absDiff}辈长辈` + (target.sex==='男'?"男":"女"); return prefix + mod + base; }
-        else if (diff < 0) { const absDiff = -diff; const keyPerson = pathPersons[pathPersons.length-2] || null; const siblingSex = keyPerson ? keyPerson.sex : (ops[0]==='f'?'男':'女'); let base = ""; if (absDiff === 1) base = (siblingSex==='男'?"侄":"甥") + (target.sex==='男'?"子":"女"); else if (absDiff === 2) base = (siblingSex==='男'?"侄孙":"甥孙") + (target.sex==='男'?"":"女"); else if (absDiff === 3) base = (siblingSex==='男'?"侄曾孙":"甥曾孙") + (target.sex==='男'?"":"女"); else if (absDiff === 4) base = (siblingSex==='男'?"侄玄孙":"甥玄孙") + (target.sex==='男'?"":"女"); else base = `${absDiff}辈晚辈` + (target.sex==='男'?"男":"女"); return prefix + mod + base; }
-        else { const base = target.sex==='男'?"兄弟":"姐妹"; return prefix + mod + base; }
+        const diff = upSteps - downSteps, level = Math.min(upSteps, downSteps);
+        let prefix = "";
+        if (pathPersons.length > level) {
+            const first = ops[0], connector = pathPersons[level];
+            if (first === 'f') prefix = (connector.sex === '女') ? "姑表" : "堂";
+            else if (first === 'm') prefix = (connector.sex === '男') ? "舅表" : "姨表";
+        }
+        let mod = level <= 1 ? "" : (level === 2 ? "堂" : (level === 3 ? "再从" : "远"));
+        if (prefix) mod = "";
+        if (diff > 0) {
+            if (diff === 1) return prefix + mod + (ops[0]==='f' ? (target.sex==='男'?"伯叔":"姑") : (target.sex==='男'?"舅":"姨"));
+            if (diff === 2) return prefix + mod + (target.sex==='男'?"祖父":"祖母");
+            return prefix + mod + `${diff}辈长辈`;
+        }
+        const absDiff = -diff, sib = pathPersons[pathPersons.length-2], sSex = sib ? sib.sex : (ops[0]==='f'?'男':'女');
+        if (absDiff === 1) return prefix + mod + (sSex==='男'?"侄":"甥") + (target.sex==='男'?"子":"女");
+        return prefix + mod + `${absDiff}辈晚辈`;
     }
-    if (spCount === 1) { const baseOps = ops.filter(op => op !== 'sp'), basePersons = pathPersons.filter((_,idx) => ops[idx] !== 'sp'); const baseRel = getRelationship(start, target, basePersons, baseOps, people); return "姻" + baseRel; }
+    if (hasSpouse && downSteps > upSteps) return "姻亲晚辈";
     return "未知关系";
 }
+
 function printRelationshipsWithClick(startName, relations, people) {
     const byGap = new Map();
-    for (const [name, info] of Object.entries(relations)) { if (name === startName) continue; const gap = info.gap; if (!byGap.has(gap)) byGap.set(gap, []); byGap.get(gap).push({ name, pathPersons: info.pathPersons, pathOps: info.pathOps, person: info.person }); }
-    const sortedGaps = Array.from(byGap.keys()).sort((a,b) => b - a); const printedSpousesGlobal = new Set(); const lines = [];
-    const makeClickable = (name) => `<span class="clickable-name" data-name="${escapeHtml(name)}">${escapeHtml(name)}</span>`;
-    for (const gap of sortedGaps) {
-        const items = byGap.get(gap);
-        if (gap > 0) lines.push(`\n上${gap}辈 ————————————————————————————`); else if (gap === 0) lines.push(`\n同辈 ————————————————————————————`); else lines.push(`\n下${-gap}辈 ————————————————————————————`);
-        const groups = { f: [], m: [], sp: [], ch: [] };
-        for (const item of items) { const first = item.pathOps[0] || ''; if (groups[first]) groups[first].push(item); else groups['f'].push(item); }
-        const sectionOrder = ['f','m','sp','ch']; const sectionTitle = { f:'【父系亲属】', m:'【母系亲属】', sp:'【配偶亲属】', ch:'【子女亲属】' };
-        for (const first of sectionOrder) {
-            if (!groups[first] || groups[first].length===0) continue; lines.push(sectionTitle[first]);
-            if (Math.abs(gap) >= 5) { for (const item of groups[first]) { const obj = item.person; if (printedSpousesGlobal.has(obj.name)) continue; const rel = getRelationship(people[startName], obj, item.pathPersons, item.pathOps, people); let line = `  ${rel} ${makeClickable(obj.name)}`; if (obj.spouse && obj.spouse.length) { const spouseObjs = obj.spouse.map(sn => people[sn]).filter(s => s); if (spouseObjs.length) line += ` 配 ${spouseObjs.map(sp => makeClickable(sp.name)).join('、')}`; } lines.push(line); } continue; }
-            const bloodNames = new Set(), bloodSpouses = new Set();
-            if (first === 'f' || first === 'm' || first === 'ch') { for (const item of groups[first]) if (!item.pathOps.includes('sp')) bloodNames.add(item.person.name); for (const item of groups[first]) if (bloodNames.has(item.person.name)) for (const sname of item.person.spouse) if (item.person.sex === '男') bloodSpouses.add(sname); }
-            const families = new Map();
-            for (const item of groups[first]) { if ((first==='f'||first==='m'||first==='ch') && (item.pathOps.includes('sp') || bloodSpouses.has(item.person.name))) continue; const fName = item.person.father || "?", mName = item.person.mother || "?"; const key = `${fName}|${mName}`; if (!families.has(key)) families.set(key, []); families.get(key).push(item); }
-            for (const [famKey, members] of families.entries()) {
-                members.sort((a,b) => (a.person.birthYear ?? 9999) - (b.person.birthYear ?? 9999)); const [fName, mName] = famKey.split('|');
-                if (fName !== "?" || mName !== "?") lines.push(`  家庭 ${makeClickable(fName)} & ${makeClickable(mName)}`); else lines.push(`  家庭 ？ & ？`);
-                for (const item of members) {
-                    const obj = item.person; if (printedSpousesGlobal.has(obj.name)) continue; const rel = getRelationship(people[startName], obj, item.pathPersons, item.pathOps, people); let line = `    ${rel} ${makeClickable(obj.name)}`;
-                    if (obj.spouse && obj.spouse.length) { const spouseObjs = obj.spouse.map(sn => people[sn]).filter(s => s); if (spouseObjs.length) line += ` 配 ${spouseObjs.map(sp => makeClickable(sp.name)).join('、')}`; }
-                    lines.push(line);
-                    for (const spName of obj.spouse) { const spouseObj = people[spName]; if (!spouseObj || printedSpousesGlobal.has(spouseObj.name)) continue; if (!spouseObj.fatherObj && !spouseObj.motherObj) { const spousePathPersons = [...item.pathPersons, spouseObj], spouseOps = [...item.pathOps, 'sp']; const spouseRel = getRelationship(people[startName], spouseObj, spousePathPersons, spouseOps, people); lines.push(`    ${spouseRel} ${makeClickable(spouseObj.name)}`); printedSpousesGlobal.add(spouseObj.name); } }
+    for (const [name, info] of Object.entries(relations)) {
+        if (name === startName) continue;
+        if (!byGap.has(info.gap)) byGap.set(info.gap, []);
+        byGap.get(info.gap).push({ name, pathPersons: info.pathPersons, pathOps: info.pathOps, person: info.person });
+    }
+    const lines = [], printed = new Set();
+    const mk = (n) => `<span class="clickable-name" data-name="${escapeHtml(n)}">${escapeHtml(n)}</span>`;
+    for (const gap of Array.from(byGap.keys()).sort((a,b) => b - a)) {
+        lines.push(`\n${gap > 0 ? `上${gap}辈` : (gap === 0 ? '同辈' : `下${-gap}辈`)} ————————————————————`);
+        const groups = { f:[], m:[], sp:[], ch:[] };
+        for (const item of byGap.get(gap)) groups[item.pathOps[0] || 'f'].push(item);
+        for (const first of ['f','m','sp','ch']) {
+            if (!groups[first].length) continue;
+            lines.push({f:'【父系亲属】', m:'【母系亲属】', sp:'【配偶亲属】', ch:'【子女亲属】'}[first]);
+            groups[first].sort((a,b) => (a.person.birthYear ?? 9999) - (b.person.birthYear ?? 9999));
+            for (const item of groups[first]) {
+                if (printed.has(item.person.name)) continue;
+                const rel = getRelationship(people[startName], item.person, item.pathPersons, item.pathOps, people);
+                let line = `  ${rel} ${mk(item.person.name)}`;
+                if (item.person.spouse?.length) {
+                    const spObjs = item.person.spouse.map(sn => people[sn]).filter(Boolean);
+                    if (spObjs.length) line += ` 配 ${spObjs.map(s => mk(s.name)).join('、')}`;
                 }
-                lines.push("");
+                lines.push(line);
             }
         }
     }
     return lines.join('\n');
 }
-
-// --------------------- 称呼兼容层（已补全亲家公母） ---------------------
-const RELATION_SYNONYM_MAP = {
-    '父亲': ['爸爸','爸','老爸','爹','爹爹','家父'], '母亲': ['妈妈','妈','老妈','娘','家母'],
-    '亲家父亲': ['亲家公', '亲家爸'], '亲家母亲': ['亲家母', '亲家妈'],
-    '祖父': ['爷爷','阿公'], '祖母': ['奶奶','阿嬷'], '外祖父': ['外公','姥爷'], '外祖母': ['外婆','姥姥'],
-    '曾祖父': ['太爷爷','老爷爷','太公'], '曾祖母': ['太奶奶','老奶奶','太婆'],
-    '儿子': ['儿'], '女儿': ['闺女'], '孙子': ['孙'], '兄': ['哥哥','哥','大哥'], '弟': ['弟弟'], '姐': ['姐姐'], '妹': ['妹妹'],
-    '伯父': ['大爷','伯伯','大伯'], '叔父': ['叔叔','叔'], '姑母': ['姑姑','姑妈'], '舅父': ['舅舅','舅'], '姨母': ['姨妈','姨','姨娘'], '侄子': ['侄儿'],
-    '嫂': ['嫂子','嫂嫂'], '弟媳': ['弟妹'], '伯母': ['大娘','伯娘','大妈'], '叔母': ['婶婶','婶子','婶母'], '姑父': ['姑丈'], '舅母': ['舅妈'], '姨父': ['姨丈'], '儿媳': ['媳妇'], '女婿': ['姑爷'], '曾孙': ['重孙'], '曾孙女': ['重孙女']
+const REL_TOKEN_MAP = {
+    '父亲':['father'],'爸爸':['father'],'爸':['father'],'爹':['father'],'母亲':['mother'],'妈妈':['mother'],'妈':['mother'],'娘':['mother'],
+    '妻子':['spouse'],'老婆':['spouse'],'配偶':['spouse'],'丈夫':['spouse'],'老公':['spouse'],'儿子':['sons'],'儿':['sons'],
+    '女儿':['daughters'],'闺女':['daughters'],'哥哥':['older_brothers'],'哥':['older_brothers'],'弟弟':['younger_brothers'],'弟':['younger_brothers'],
+    '姐姐':['older_sisters'],'姐':['older_sisters'],'妹妹':['younger_sisters'],'妹':['younger_sisters'],'子女':['children'],'孩子':['children'],
+    '兄弟':['siblings'],'姐妹':['siblings'],'外婆':['mother','mother'],'姥姥':['mother','mother'],'外公':['mother','father'],'姥爷':['mother','father'],
+    '奶奶':['father','mother'],'爷爷':['father','father'],'岳父':['spouse','father'],'老丈人':['spouse','father'],'岳母':['spouse','mother'],'丈母娘':['spouse','mother'],
+    '公公':['spouse','father'],'婆婆':['spouse','mother'],'儿媳妇':['sons','spouse'],'儿媳':['sons','spouse'],'女婿':['daughters','spouse'],
+    '堂兄弟': ['father', 'children', 'sons'],
+    '堂兄': ['father', 'children', 'sons'],
+    '堂哥': ['father', 'children', 'sons'],
+    '堂弟': ['father', 'children', 'sons'],
+    '堂姐': ['father', 'children', 'daughters'],
+    '堂妹': ['father', 'children', 'daughters'],
+    '表兄弟': ['mother', 'children', 'sons'],
+    '表哥': ['mother', 'children', 'sons'],
+    '表弟': ['mother', 'children', 'sons'],
+    '表姐': ['mother', 'children', 'daughters'],
+    '表妹': ['mother', 'children', 'daughters'],
+    '内侄': ['spouse', 'siblings', 'sons'],
+    '内侄女': ['spouse', 'siblings', 'daughters'],
+    '外甥媳妇': ['siblings', 'daughters', 'spouse'],
+    '侄女婿': ['siblings', 'sons', 'spouse'],
+    '亲家母': ['children', 'spouse', 'mother'],
+    '亲家公': ['children', 'spouse', 'father'],
+    '孙女婿': ['sons', 'daughters', 'spouse'],
+    '孙媳妇': ['sons', 'sons', 'spouse'],
+    '外孙媳妇': ['daughters', 'sons', 'spouse'],
+    '外孙女婿': ['daughters', 'daughters', 'spouse']
 };
-const RELATION_AMBIGUOUS_MAP = { '表哥': ['姑表兄','舅表兄','姨表兄'], '表兄': ['姑表兄','舅表兄','姨表兄'], '表弟': ['姑表弟','舅表弟','姨表弟'], '表姐': ['姑表姐','舅表姐','姨表姐'], '表妹': ['姑表妹','舅表妹','姨表妹'], '表兄弟': ['姑表兄弟','舅表兄弟','姨表兄弟'], '表姐妹': ['姑表姐妹','舅表姐妹','姨表姐妹'] };
+const REL_KEYS_SORTED = Object.keys(REL_TOKEN_MAP).sort((a,b) => b.length - a.length);
+
+function parseRelTermToPath(term) {
+    if (!term) return null;
+    let i = 0, path = [];
+    while (i < term.length) {
+        let matched = false;
+        for (const key of REL_KEYS_SORTED) {
+            if (term.startsWith(key, i)) {
+                path.push(...REL_TOKEN_MAP[key]);
+                i += key.length;
+                matched = true;
+                break;
+            }
+        }
+        if (!matched) return null;
+    }
+    return path.length > 1 ? path : null;
+}
+
+function validateRelTerm(term) {
+    if (!term) return null;
+    if (term.includes('称呼') || term.includes('叫') || term.includes('谁')) return '暂不支持反向查询，请尝试正向查询（例如"冯宗德叫谁姑父"）。';
+    if (term.length <= 4 || parseRelTermToPath(term)) return null;
+    const allowed = ['亲家母','亲家公','姑表兄','姑表弟','舅表兄','舅表弟','姨表兄','姨表弟','姑表姐','姑表妹','舅表姐','舅表妹','姨表姐','姨表妹','堂兄','堂弟','堂姐','堂妹'];
+    if (allowed.some(w => term.includes(w))) return null;
+    return `AI 未能正确拆解关系词「${term}」，请不要把多个关系词连在一起问。请尝试拆分成"某人的A是谁"逐个询问。`;
+}
+
+const RELATION_SYNONYM_MAP = {
+    '父亲':['爸爸','爸','老爸','爹','爹爹','家父'],'母亲':['妈妈','妈','老妈','娘','家母'],'祖父':['爷爷','阿公'],'祖母':['奶奶','阿嬷'],'外祖父':['外公','姥爷'],'外祖母':['外婆','姥姥'],
+    '曾祖父':['太爷爷','老爷爷','太公'],'曾祖母':['太奶奶','老奶奶','太婆'],'儿子':['儿'],'女儿':['闺女'],'孙子':['孙'],'兄':['哥哥','哥','大哥'],'弟':['弟弟'],'姐':['姐姐'],'妹':['妹妹'],
+    '伯父':['大爷','伯伯','大伯'],'叔父':['叔叔','叔'],'姑母':['姑姑','姑妈'],'舅父':['舅舅','舅'],'姨母':['姨妈','姨','姨娘'],'侄子':['侄儿'],'嫂':['嫂子','嫂嫂'],'弟媳':['弟妹'],
+    '伯母':['大娘','伯娘','大妈'],'叔母':['婶婶','婶子','婶母'],'姑父':['姑丈'],'舅母':['舅妈'],'姨父':['姨丈'],'儿媳':['媳妇'],'女婿':['姑爷'],'曾孙':['重孙'],'曾孙女':['重孙女'],'配偶':['老婆','妻子','老公','丈夫']
+};
+const RELATION_AMBIGUOUS_MAP = {
+    '表哥':['姑表兄','舅表兄','姨表兄'],'表兄':['姑表兄','舅表兄','姨表兄'],'表弟':['姑表弟','舅表弟','姨表弟'],'表姐':['姑表姐','舅表姐','姨表姐'],'表妹':['姑表妹','舅表妹','姨表妹'],'表兄弟':['姑表兄弟','舅表兄弟','姨表兄弟'],'表姐妹':['姑表姐妹','舅表姐妹','姨表姐妹']
+};
 const RELATION_SYNONYM_REVERSE = {};
-for (const [canonical, aliases] of Object.entries(RELATION_SYNONYM_MAP)) { for (const alias of aliases) RELATION_SYNONYM_REVERSE[alias] = canonical; }
+for (const [canonical, aliases] of Object.entries(RELATION_SYNONYM_MAP)) for (const alias of aliases) RELATION_SYNONYM_REVERSE[alias] = canonical;
 const RELATION_PREFIXES = ['外岳','夫家','妻家','亲家','再从','堂','姻','岳','族','远','内','外'];
+
 function resolveRelationCandidates(term) {
     term = (term || '').trim(); if (!term) return [];
     if (RELATION_AMBIGUOUS_MAP[term]) return RELATION_AMBIGUOUS_MAP[term];
     if (RELATION_SYNONYM_REVERSE[term]) return [RELATION_SYNONYM_REVERSE[term]];
-    for (const prefix of RELATION_PREFIXES) { if (term.startsWith(prefix) && term.length > prefix.length) { const rest = term.slice(prefix.length); if (RELATION_AMBIGUOUS_MAP[rest]) return RELATION_AMBIGUOUS_MAP[rest].map(c => prefix + c); if (RELATION_SYNONYM_REVERSE[rest]) return [prefix + RELATION_SYNONYM_REVERSE[rest]]; } }
+    for (const prefix of RELATION_PREFIXES) {
+        if (term.startsWith(prefix) && term.length > prefix.length) {
+            const rest = term.slice(prefix.length);
+            if (RELATION_AMBIGUOUS_MAP[rest]) return RELATION_AMBIGUOUS_MAP[rest].map(c => prefix + c);
+            if (RELATION_SYNONYM_REVERSE[rest]) return [prefix + RELATION_SYNONYM_REVERSE[rest]];
+        }
+    }
     return [term];
 }
+
 function queryPairRelation(nameA, nameB) {
     nameA = (nameA || '').trim(); nameB = (nameB || '').trim();
     if (!peopleData) return { ok: false, message: '数据未加载，请先点击「加载资料库」。' };
@@ -391,129 +500,370 @@ function queryPairRelation(nameA, nameB) {
     const rel = getRelationship(peopleData[nameA], peopleData[nameB], info.pathPersons, info.pathOps, peopleData);
     return { ok: true, nameA, nameB, relation: rel, message: `${nameA} 称 ${nameB} 为「${rel}」` };
 }
+
 function queryPersonsByRelation(name, relTerm) {
     name = (name || '').trim(); relTerm = (relTerm || '').trim();
     if (!peopleData) return { ok: false, message: '数据未加载，请先点击「加载资料库」。' };
     if (!name) return { ok: false, message: '请输入姓名。' };
     if (!peopleData[name]) return { ok: false, message: `'${name}' 不在家谱中。` };
-    if (!relTerm) return { ok: false, message: '请输入关系称呼，例如：表弟、姑母、外甥女。' };
-    const candidates = resolveRelationCandidates(relTerm);
-    const relations = bfsRelationships(name, peopleData); const matches = [];
-    for (const [pname, info] of Object.entries(relations)) { if (pname === name) continue; let rel; try { rel = getRelationship(peopleData[name], peopleData[pname], info.pathPersons, info.pathOps, peopleData); } catch (e) { continue; } if (candidates.includes(rel)) matches.push({ name: pname, relation: rel }); }
-    const canonicalNote = (candidates.length === 1 && candidates[0] !== relTerm) ? `（按"${candidates[0]}"匹配）` : (candidates.length > 1 ? `（按${candidates.map(c=>`"${c}"`).join('/')}匹配）` : '');
-    if (matches.length === 0) return { ok: false, message: `未找到 '${name}' 的「${relTerm}」${canonicalNote}。换个称呼试试，或直接用系统推导出的规范称呼。` };
-    return { ok: true, name, relTerm, matches, message: `${name} 的「${relTerm}」${canonicalNote}共 ${matches.length} 人` };
+    if (!relTerm) return { ok: false, message: '请输入关系称呼。' };
+    if (relTerm.includes('称呼') || relTerm.includes('叫') || relTerm.includes('谁')) return { ok: false, type: 'unsupported', message: '暂不支持反向查询，请尝试正向查询（例如"冯宗德叫谁姑父"）。' };
+    const candidates = resolveRelationCandidates(relTerm), relations = bfsRelationships(name, peopleData), matches = [];
+    for (const [pname, info] of Object.entries(relations)) {
+        if (pname === name) continue;
+        try { const rel = getRelationship(peopleData[name], peopleData[pname], info.pathPersons, info.pathOps, peopleData); if (candidates.includes(rel)) matches.push({ name: pname, relation: rel }); } catch (e) {}
+    }
+    const note = (candidates.length === 1 && candidates[0] !== relTerm) ? `（按"${candidates[0]}"匹配）` : (candidates.length > 1 ? `（按${candidates.map(c=>`"${c}"`).join('/')}匹配）` : '');
+    if (!matches.length) return { ok: false, message: `未找到 '${name}' 的「${relTerm}」${note}。` };
+    return { ok: true, name, relTerm, matches, message: `${name} 的「${relTerm}」${note}共 ${matches.length} 人` };
 }
 window.queryPairRelation = queryPairRelation; window.queryPersonsByRelation = queryPersonsByRelation;
 
-// --------------------- AI 管家核心逻辑 ---------------------
+function personSpouses(p) { return p ? p.spouse.map(n => peopleData[n]).filter(Boolean) : []; }
+function personSons(p) { return p ? p.children.filter(c => c.sex === '男') : []; }
+function personDaughters(p) { return p ? p.children.filter(c => c.sex === '女') : []; }
+function personSiblings(p) { if (!p) return []; const map = new Map(); const add = arr => { for (const c of arr) if (c.name !== p.name) map.set(c.name, c); }; if (p.fatherObj) add(p.fatherObj.children); if (p.motherObj) add(p.motherObj.children); return [...map.values()]; }
+function personOlderBrothers(p) { return personSiblings(p).filter(s => s.sex === '男' && compareBirth(p, s) < 0); }
+function personYoungerBrothers(p) { return personSiblings(p).filter(s => s.sex === '男' && compareBirth(p, s) > 0); }
+function personOlderSisters(p) { return personSiblings(p).filter(s => s.sex === '女' && compareBirth(p, s) < 0); }
+function personYoungerSisters(p) { return personSiblings(p).filter(s => s.sex === '女' && compareBirth(p, s) > 0); }
+
+const RELATION_STEP_FNS = {
+    father: p => p.fatherObj ? [p.fatherObj] : [], mother: p => p.motherObj ? [p.motherObj] : [], spouse: p => personSpouses(p), children: p => p.children, sons: p => personSons(p), daughters: p => personDaughters(p), siblings: p => personSiblings(p), older_brothers: p => personOlderBrothers(p), younger_brothers: p => personYoungerBrothers(p), older_sisters: p => personOlderSisters(p), younger_sisters: p => personYoungerSisters(p)
+};
+const RELATION_STEP_LABELS = { father:'父亲', mother:'母亲', spouse:'配偶', children:'子女', sons:'儿子', daughters:'女儿', siblings:'兄弟姐妹', older_brothers:'哥哥', younger_brothers:'弟弟', older_sisters:'姐姐', younger_sisters:'妹妹' };
+
+function walkRelationChain(startName, steps) {
+    if (!peopleData[startName]) return { ok: false, message: `"${startName}" 不在家谱中。` };
+    if (!Array.isArray(steps) || !steps.length) return { ok: false, message: '没有给出查询步骤。' };
+    let current = [peopleData[startName]], stepTextArr = [];
+    for (const step of steps) {
+        const fn = RELATION_STEP_FNS[step]; if (!fn) return { ok: false, message: `不认识的关系步骤："${step}"` };
+        const next = new Map(); for (const p of current) for (const n of fn(p)) next.set(n.name, n);
+        current = [...next.values()]; stepTextArr.push(RELATION_STEP_LABELS[step] || step);
+        if (!current.length) return { ok: false, message: `推导链中断：${startName}的${stepTextArr.join(' 的 ')}在数据中不存在。可能家谱中未录入该亲属信息。` };
+    }
+    const stepText = stepTextArr.join(' 的 ');
+    const filteredNames = current.map(p => p.name).filter(n => n !== startName);
+    return { ok: true, type: 'chain', startName, stepText, names: filteredNames };
+}
+
+function findCommonAncestor(nameA, nameB) {
+    if (!nameA || !nameB) return { ok: false, message: '请输入两个有效的姓名。' };
+    if (!peopleData[nameA]) return { ok: false, message: `"${nameA}" 不在家谱中。` };
+    if (!peopleData[nameB]) return { ok: false, message: `"${nameB}" 不在家谱中。` };
+    const getAncestors = (name) => {
+        const ancestors = new Map(), queue = [{ name, depth: 0 }];
+        while (queue.length) {
+            const { name: cur, depth } = queue.shift(); if (ancestors.has(cur)) continue; ancestors.set(cur, depth);
+            const p = peopleData[cur]; if (p.fatherObj) queue.push({ name: p.fatherObj.name, depth: depth + 1 }); if (p.motherObj) queue.push({ name: p.motherObj.name, depth: depth + 1 });
+        }
+        return ancestors;
+    };
+    const ancA = getAncestors(nameA), ancB = getAncestors(nameB), common = [];
+    for (const [name, depthA] of ancA.entries()) if (ancB.has(name)) common.push({ name, depthA, depthB: ancB.get(name), totalDepth: depthA + ancB.get(name) });
+    if (!common.length) return { ok: false, message: `${nameA} 和 ${nameB} 没有共同的祖先（或数据缺失）。` };
+    common.sort((a, b) => a.totalDepth - b.totalDepth);
+    return { ok: true, type: 'common_ancestor', a: nameA, b: nameB, ancestor: common[0].name, depthA: common[0].depthA, depthB: common[0].depthB };
+}
+
+function querySetRelation(personName, relTerm) {
+    if (!personName || !relTerm) return { ok: false, message: '请输入有效的姓名和关系称呼。' };
+    if (!peopleData[personName]) return { ok: false, message: `"${personName}" 不在家谱中。` };
+    const r = queryPersonsByRelation(personName, relTerm); if (!r.ok) return r;
+    if (r.matches.length < 2) return { ok: false, message: `${personName} 的「${relTerm}」不足 2 人，无法计算彼此关系。` };
+    const pairs = [];
+    for (let i = 0; i < r.matches.length; i++) for (let j = i + 1; j < r.matches.length; j++) {
+        const pairRel = queryPairRelation(r.matches[i].name, r.matches[j].name);
+        if (pairRel.ok) pairs.push({ a: r.matches[i].name, b: r.matches[j].name, relation: pairRel.relation });
+    }
+    return { ok: true, type: 'cross', leftDesc: `${personName}的${relTerm}`, rightDesc: `${personName}的${relTerm}`, pairs };
+}
+
 function findNamesInText(text) {
-    if (!peopleData) return []; const allNames = Object.keys(peopleData).sort((a, b) => b.length - a.length); const found = []; let i = 0;
-    while (i < text.length) { let matched = null; for (const name of allNames) { if (name.length >= 2 && text.startsWith(name, i)) { matched = name; break; } } if (matched) { found.push({ name: matched, pos: i }); i += matched.length; } else i += 1; }
+    if (!peopleData) return [];
+    const allNames = Object.keys(peopleData).sort((a, b) => b.length - a.length), found = [];
+    let i = 0;
+    while (i < text.length) {
+        let matched = null;
+        for (const name of allNames) if (name.length >= 2 && text.startsWith(name, i)) { matched = name; break; }
+        if (matched) { found.push({ name: matched, pos: i }); i += matched.length; } else i += 1;
+    }
     return found;
 }
-async function fetchAgentIntention(userText) {
-    if (!AGENT_CONFIG.enabled || !peopleData) return null;
-    const nameList = Object.keys(peopleData).join('、');
-    const systemPrompt = `你是一个家谱查询智能助手。用户输入来自手机语音识别，极可能有同音字错误、毫无标点符号、断句混乱。
-【家谱姓名列表】：${nameList}
-
-请你务必做到以下几点：
-1. 【强力纠错】：如果用户输入中包含与家谱名字发音相近的字，请务必优先替换为家谱中的正确名字（例如把“风中德”纠正为“冯宗德”）。
-2. 【模糊理解】：用户可能说话语无伦次，比如“冯宗德他爷爷我找一下”，请提取核心意图：查询“冯宗德”的“祖父”。
-3. 【提取 JSON】：基于纠正后的名字和理解到的意图，输出标准的 JSON 格式。
-
-支持以下意图类型：
-1. "pair"：两人关系。提取 nameA, nameB。
-2. "byrel"：按称呼找人。提取 name, relTerm。
-3. "full"：查某人完整关系树。提取 name。
-4. "media"：想看某人的照片、视频、录音或资料。提取 name。
-
-JSON 格式示例（务必不要有任何 markdown 标记）：
-{"type": "byrel", "name": "冯宗德", "relTerm": "祖父"}
-{"type": "media", "name": "冯宗德"}
-`;
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), AGENT_CONFIG.timeout);
-        const response = await fetch(AGENT_CONFIG.workerUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: "deepseek-chat", // 👈 修复：必须加上这一行，否则 DeepSeek 返回 422 错误
-                messages: [
-                    { role: "system", content: systemPrompt },
-                    { role: "user", content: userText }
-                ],
-                temperature: 0.1,
-                response_format: { type: "json_object" }
-            }),
-            signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        if (!response.ok) { const errText = await response.text(); throw new Error(`API 请求失败 (${response.status}): ${errText}`); }
-        const data = await response.json();
-        let content = data.choices[0].message.content;
-        content = content.replace(/```json/g, '').replace(/```/g, '').trim();
-        return JSON.parse(content);
-    } catch (error) {
-        console.warn("AI 解析失败，将降级为本地匹配:", error);
-        return null;
+function parseAndRunNaturalQuery(text) {
+    text = (text || '').trim(); if (!text) return { ok: false, message: '请输入或说出查询内容。' };
+    if (!peopleData) return { ok: false, message: '数据未加载，请先点击「加载资料库」。' };
+    if (text.includes('谁称呼') || text.includes('谁叫') || text.includes('谁喊')) return { ok: false, type: 'unsupported', message: '暂不支持反向查询，请尝试正向查询（例如"冯宗德叫谁姑父"）。' };
+    const found = findNamesInText(text), uniqueNames = [...new Set(found.map(f => f.name))];
+    if (uniqueNames.length >= 2) return { ...queryPairRelation(found[0].name, found.find(f => f.name !== found[0].name).name), type: 'pair' };
+    if (uniqueNames.length === 1) {
+        const name = uniqueNames[0], rest = text.replace(name, '').replace(/[的是谁有哪些哪个几个几位呀啊吗呢？?，,。.！!\s]/g, '').trim();
+        if (['', '关系', '所有关系', '全部关系', '全部亲属', '所有亲属', '亲属', '家族树', '家谱'].includes(rest)) return { ok: true, type: 'full', name };
+        const path = parseRelTermToPath(rest);
+        if (path) { const r = walkRelationChain(name, path); if (r.ok) return { ...r, type: 'chain' }; }
+        return { ...queryPersonsByRelation(name, rest), type: 'byrel' };
     }
-}
-async function parseAndRunNaturalQuery(text) {
-    text = (text || '').trim(); if (!text) return { ok: false, message: '请输入或说出查询内容。' }; if (!peopleData) return { ok: false, message: '数据未加载，请先点击「加载资料库」。' };
-    const aiStatusSpan = document.getElementById('aiStatus'); aiStatusSpan.className = 'ai-status thinking'; aiStatusSpan.textContent = '🤖 AI 正在思考...'; outputPre.innerHTML = '<pre>⏳ AI 正在理解您的意思...</pre>';
-    let aiResult = await fetchAgentIntention(text);
-    aiStatusSpan.className = 'ai-status online'; aiStatusSpan.textContent = '🤖 AI 管家已响应';
-    if (aiResult) {
-        if (aiResult.type === 'media') { if (peopleData[aiResult.name]) { showPersonMediaInModal(aiResult.name); return { ok: true, type: 'media', name: aiResult.name, message: `正在为您打开 ${aiResult.name} 的资料` }; } else { return { ok: false, message: `家谱中未找到「${aiResult.name}」` }; } }
-        else if (aiResult.type === 'pair') { const r = queryPairRelation(aiResult.nameA, aiResult.nameB); return { ...r, type: 'pair' }; }
-        else if (aiResult.type === 'byrel') { const r = queryPersonsByRelation(aiResult.name, aiResult.relTerm); return { ...r, type: 'byrel' }; }
-        else if (aiResult.type === 'full') { return { ok: true, type: 'full', name: aiResult.name }; }
-    }
-    console.warn("使用降级方案：本地正则匹配");
-    const found = findNamesInText(text); const uniqueNames = [...new Set(found.map(f => f.name))];
-    if (uniqueNames.length >= 2) { const nameA = found[0].name; const nameBEntry = found.find(f => f.name !== nameA); const nameB = nameBEntry ? nameBEntry.name : uniqueNames[1]; const r = queryPairRelation(nameA, nameB); return { ...r, type: 'pair' }; }
-    if (uniqueNames.length === 1) { const name = uniqueNames[0]; let rest = text.replace(name, ''); rest = rest.replace(/[的是谁有哪些哪个几个几位呀啊吗呢？?，,。.！!\s]/g, '').trim(); const fullListWords = ['', '关系', '所有关系', '全部关系', '全部亲属', '所有亲属', '亲属', '家族树', '家谱']; if (fullListWords.includes(rest)) return { ok: true, type: 'full', name }; const r = queryPersonsByRelation(name, rest); return { ...r, type: 'byrel' }; }
     return { ok: false, message: `没能从"${escapeHtml(text)}"里识别出家谱中的姓名。` };
 }
-function renderNaturalQueryResult(result) {
-    if (!result.ok) { outputPre.innerHTML = `<pre>❌ ${escapeHtml(result.message)}</pre>`; return ''; }
-    if (result.type === 'media') { outputPre.innerHTML = `<pre>✅ ${escapeHtml(result.message)}（请查看弹出窗口）</pre>`; return result.message; }
-    let html = '', speakText = '';
-    if (result.type === 'pair') { html = `<pre>========== 两人关系 ==========\n${makeClickableName(result.nameA)} 称 ${makeClickableName(result.nameB)} 为「${escapeHtml(result.relation)}」</pre>`; speakText = `${result.nameA} 称 ${result.nameB} 为 ${result.relation}`; }
-    else if (result.type === 'byrel') { const lines = result.matches.map(m => `  ${makeClickableName(m.name)}`).join('\n'); html = `<pre>========== ${escapeHtml(result.name)} 的「${escapeHtml(result.relTerm)}」（共${result.matches.length}人） ==========\n${lines}</pre>`; speakText = `${result.name} 的 ${result.relTerm} 共 ${result.matches.length} 人：` + result.matches.map(m => m.name).join('、'); }
-    else if (result.type === 'full') { const relations = bfsRelationships(result.name, peopleData); const outputText = printRelationshipsWithClick(result.name, relations, peopleData); html = `<pre>========== 从 ${escapeHtml(result.name)} 出发的家族关系树 ==========\n${outputText}</pre>`; speakText = `已列出 ${result.name} 的完整家族关系树，请查看屏幕。`; }
-    outputPre.innerHTML = html; bindClickableNames(); return speakText;
+
+function makeClickableName(name) { return `<span class="clickable-name" data-name="${escapeHtml(name)}">${escapeHtml(name)}</span>`; }
+function bindClickableNames() { document.querySelectorAll('.clickable-name').forEach(el => { el.onclick = (e) => { const name = e.target.getAttribute('data-name'); if (name && peopleData[name]) showPersonMediaInModal(name); }; }); }
+
+function buildManualMediaEntry(names, queryPerson) {
+    let target = null;
+    if (names && names.length === 1) target = names[0];
+    else if (queryPerson && peopleData[queryPerson]) target = queryPerson;
+    else if (names && names.length > 1 && peopleData[names[0]]) target = names[0];
+    if (!target || !peopleData[target]) return '';
+    return `<div class="media-entry-box">📁 <span class="clickable-name" data-name="${escapeHtml(target)}">${escapeHtml(target)}</span> 的多媒体资料（点击姓名查看）</div>`;
 }
-async function runNaturalQuery(text) { const result = await parseAndRunNaturalQuery(text); const speakText = renderNaturalQueryResult(result); if (document.getElementById('ttsToggle').checked) { speak(speakText || result.message || ''); } }
-function quickQuery(text) { document.getElementById('voiceQueryInput').value = text; runNaturalQuery(text); }
+function renderNaturalQueryResult(result, queryText) {
+    let debugBanner = '';
+    if (window._lastIR) {
+        debugBanner = `<div class="debug-banner">🔍 模型理解：${escapeHtml(JSON.stringify(window._lastIR))}</div>`;
+        window._lastIR = null; window._lastRawContent = null;
+    }
 
-// --------------------- 语音输出（TTS） ---------------------
-function speak(text) { if (!text || !window.speechSynthesis) return; try { window.speechSynthesis.cancel(); const utter = new SpeechSynthesisUtterance(text); utter.lang = 'zh-CN'; window.speechSynthesis.speak(utter); } catch (e) { console.warn('语音朗读失败:', e); } }
+    let queryPerson = null;
+    if (queryText && peopleData) {
+        const found = findNamesInText(queryText);
+        if (found.length) queryPerson = found[0].name;
+    }
 
-// --------------------- 语音输入（适配移动端） ---------------------
+    function buildMediaEntry(names) {
+        let target = null;
+        if (names && names.length === 1) target = names[0];
+        else if (queryPerson) target = queryPerson;
+        if (!target || !peopleData[target]) return '';
+        return `<div class="media-entry-box">📁 <span class="clickable-name" data-name="${escapeHtml(target)}">${escapeHtml(target)}</span> 的多媒体资料（点击姓名查看）</div>`;
+    }
+
+    if (!result || !result.ok) {
+        const msg = (result && result.message) || '查询失败。';
+        outputPre.innerHTML = debugBanner + `<pre>❌ ${escapeHtml(msg)}</pre>`;
+        return msg;
+    }
+
+    let html = debugBanner, speakText = '', mediaNames = [];
+
+    if (result.type === 'pair') {
+        html += `<pre>========== 两人关系 ==========\n${makeClickableName(result.nameA)} 称 ${makeClickableName(result.nameB)} 为「${escapeHtml(result.relation)}」</pre>`;
+        speakText = `${result.nameA} 称 ${result.nameB} 为 ${result.relation}`;
+        mediaNames = [result.nameA, result.nameB];
+    } else if (result.type === 'byrel') {
+        const lines = result.matches.map(m => `  ${makeClickableName(m.name)}`).join('\n');
+        html += `<pre>========== ${escapeHtml(result.name)} 的「${escapeHtml(result.relTerm)}」（共${result.matches.length}人） ==========\n${lines}</pre>`;
+        speakText = `${result.name} 的 ${result.relTerm} 共 ${result.matches.length} 人：` + result.matches.map(m => m.name).join('、');
+        mediaNames = result.matches.map(m => m.name);
+    } else if (result.type === 'full') {
+        html += `<pre>========== 从 ${escapeHtml(result.name)} 出发的家族关系树 ==========\n${printRelationshipsWithClick(result.name, bfsRelationships(result.name, peopleData), peopleData)}</pre>`;
+        speakText = `已列出 ${result.name} 的完整家族关系树，请查看屏幕。`;
+        mediaNames = [result.name];
+    } else if (result.type === 'chain') {
+        if (!result.names.length) {
+            html += `<pre>========== 关系链查询 ==========\n${escapeHtml(result.startName)} 的 ${escapeHtml(result.stepText)}：没有找到符合条件的人。</pre>`;
+            speakText = `没有找到 ${result.startName} 的 ${result.stepText}。`;
+        } else {
+            const lines = result.names.map(n => `  ${makeClickableName(n)}`).join('\n');
+            html += `<pre>========== 关系链查询 ==========\n${escapeHtml(result.startName)} 的 ${escapeHtml(result.stepText)}（共${result.names.length}人） ==========\n${lines}</pre>`;
+            speakText = `${result.startName} 的 ${result.stepText} 是：` + result.names.join('、');
+            mediaNames = result.names;
+        }
+    } else if (result.type === 'cross') {
+        const leftLabel = escapeHtml(result.leftDesc), rightLabel = escapeHtml(result.rightDesc);
+        const lines = result.pairs.map(p => `  ${makeClickableName(p.a)} 称 ${makeClickableName(p.b)} 为「${escapeHtml(p.relation)}」`).join('\n');
+        html += `<pre>========== ${leftLabel} 和 ${rightLabel}（共${result.pairs.length}组） ==========\n${lines}</pre>`;
+        speakText = `${result.leftDesc} 和 ${result.rightDesc} 共 ${result.pairs.length} 组关系：` + result.pairs.map(p => `${p.b} 是 ${p.a} 的 ${p.relation}`).join('；');
+        mediaNames = result.pairs.flatMap(p => [p.a, p.b]);
+    } else if (result.type === 'common_ancestor') {
+        html += `<pre>========== 共同祖先查询 ==========\n${makeClickableName(result.a)} 和 ${makeClickableName(result.b)} 的最近共同祖先是：${makeClickableName(result.ancestor)}\n  （距离 ${result.a} 为 ${result.depthA} 代，距离 ${result.b} 为 ${result.depthB} 代）</pre>`;
+        speakText = `${result.a} 和 ${result.b} 的最近共同祖先是 ${result.ancestor}`;
+        mediaNames = [result.a, result.b, result.ancestor];
+    } else if (result.type === 'unsupported') {
+        html += `<pre>⚠️ 暂不支持此类查询\n${escapeHtml(result.message)}</pre>`;
+        speakText = result.message;
+    }
+
+    html += buildMediaEntry(mediaNames);
+    outputPre.innerHTML = html;
+    bindClickableNames();
+    return speakText;
+}
+
+function runNaturalQuery(text) {
+    const result = parseAndRunNaturalQuery(text);
+    const speakText = renderNaturalQueryResult(result, text);
+    if (document.getElementById('ttsToggle').checked) speak(speakText || (result && result.message) || '');
+}
+
+async function runNaturalQueryAgent(text) {
+    text = (text || '').trim(); if (!text) return;
+    if (!peopleData) { outputPre.innerHTML = '<pre>数据未加载，请先点击「加载资料库」。</pre>'; return; }
+
+    const correctedText = correctNamesByPinyin(text);
+    if (correctedText !== text) text = correctedText;
+
+    const localResult = parseAndRunNaturalQuery(text);
+    if (localResult && localResult.ok) {
+        const speakText = renderNaturalQueryResult(localResult, text);
+        if (document.getElementById('ttsToggle').checked) speak(speakText || '');
+        return;
+    }
+
+    if (!AGENT_CONFIG.enabled) {
+        renderNaturalQueryResult(localResult, text);
+        return;
+    }
+    outputPre.innerHTML = '<pre>🤖 AI 管家正在理解你的问题...</pre>';
+    try {
+        const result = await aiCallAgent(text);
+        const speakText = renderNaturalQueryResult(result, text);
+        if (document.getElementById('ttsToggle').checked) speak(speakText || (result && result.message) || '');
+    } catch (e) {
+        window._lastIR = null;
+        renderNaturalQueryResult(localResult, text);
+    }
+}
+const IR_SYSTEM_PROMPT = `你是一个"家谱问句翻译器"。你的唯一任务是：把用户的中文家谱问句翻译成一个 JSON 对象。
+你不需要回答问题，不需要解释，不需要调用任何工具，只输出 JSON。
+【输出格式】只允许下面几种 type：
+1) 两人关系：{"type":"pair","a":"姓名A","b":"姓名B"}
+2) 单人完整关系树：{"type":"tree","person":"姓名"}
+3) 某人某类亲属是谁：{"type":"query","person":"姓名","relTerm":"称呼词"}。多步关系必须用 path 数组：{"type":"query","person":"姓名","path":["father","mother"]}。原子词：father,mother,spouse,sons,daughters,children,siblings,older_brothers,younger_brothers,older_sisters,younger_sisters
+4) 两人的某类亲属之间的关系：{"type":"relation_between","left":{"person":"姓名A","relTerm":"儿子"},"right":{"person":"姓名B","relTerm":"母亲"}}。左侧/右侧也可以用 path 代替 relTerm。
+5) 某人的某类亲属之间是什么关系：{"type":"set_relation","person":"姓名","relTerm":"儿子"}
+6) 两人共同祖先：{"type":"common_ancestor","a":"姓名A","b":"姓名B"}
+7) 反向查询：{"type":"unsupported","message":"暂不支持反向查询，请尝试正向查询"}
+【常用映射】"老丈人"/"岳父"=["spouse","father"]；"岳母"/"丈母娘"=["spouse","mother"]；"公公"=["spouse","father"]；"婆婆"=["spouse","mother"]；"儿媳妇"=["sons","spouse"]；"女婿"=["daughters","spouse"]；"堂兄弟"/"堂兄"/"堂哥"/"堂弟"=["father","children","sons"]；"表兄弟"/"表哥"/"表弟"=["mother","children","sons"]；"堂姐"/"堂妹"=["father","children","daughters"]；"表姐"/"表妹"=["mother","children","daughters"]
+【关键规则 — 必须严格遵守】
+- 姓名是"具体人名"，a/b/person 字段只能放具体人名。
+- 多步关系必须使用 path 数组。严禁把它们拼成一个长字符串传给 relTerm！
+- 只输出 JSON，不要 markdown 代码块，不要任何前后缀文字。`;
+
+function fetchWithTimeout(url, options, timeout) {
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeout);
+    return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+function resolveDescription(desc) {
+    if (!desc || !desc.person) return { ok: false, message: '缺少起点姓名。' };
+    const person = String(desc.person).trim(); if (!peopleData[person]) return { ok: false, message: `"${person}" 不在家谱中。` };
+    let names = [], descText = person;
+    if (desc.relTerm) {
+        const err = validateRelTerm(desc.relTerm); if (err) return { ok: false, message: err };
+        const r = queryPersonsByRelation(person, desc.relTerm); if (!r.ok) return r;
+        names = r.matches.map(m => m.name); descText = `${person}的${desc.relTerm}`;
+    } else if (Array.isArray(desc.path) && desc.path.length) {
+        const r = walkRelationChain(person, desc.path); if (!r.ok) return r;
+        names = r.names; descText = `${person}的${r.stepText}`;
+    } else names = [person];
+    return !names.length ? { ok: false, message: `没有解析出 ${descText} 对应的任何人。` } : { ok: true, names, desc: descText };
+}
+
+function execIR(ir) {
+    if (!ir || typeof ir !== 'object' || !ir.type) return { ok: false, message: '模型没有理解这个问题，换个说法试试。' };
+    switch (ir.type) {
+        case 'pair': return { ...queryPairRelation(ir.a, ir.b), type: 'pair' };
+        case 'tree': return !peopleData[ir.person] ? { ok: false, message: `"${ir.person}" 不在家谱中。` } : { ok: true, type: 'full', name: ir.person };
+        case 'query': {
+            if (!ir.person) return { ok: false, message: '缺少查询起点姓名。' };
+            if (ir.relTerm) { const err = validateRelTerm(ir.relTerm); if (err) return { ok: false, message: err }; return { ...queryPersonsByRelation(ir.person, ir.relTerm), type: 'byrel' }; }
+            if (Array.isArray(ir.path) && ir.path.length) return walkRelationChain(ir.person, ir.path);
+            return peopleData[ir.person] ? { ok: true, type: 'full', name: ir.person } : { ok: false, message: `"${ir.person}" 不在家谱中。` };
+        }
+        case 'relation_between': {
+            const setA = resolveDescription(ir.left); if (!setA.ok) return setA;
+            const setB = resolveDescription(ir.right); if (!setB.ok) return setB;
+            const pairs = [];
+            for (const a of setA.names) for (const b of setB.names) { if (a === b) continue; const r = queryPairRelation(a, b); if (r.ok) pairs.push({ a, b, relation: r.relation }); }
+            return !pairs.length ? { ok: false, message: `两侧都解析成功（${setA.desc} / ${setB.desc}），但两两之间没能算出可推导的关系。` } : { ok: true, type: 'cross', leftDesc: setA.desc, rightDesc: setB.desc, pairs };
+        }
+        case 'set_relation': {
+            if (!ir.person || !ir.relTerm) return { ok: false, message: '缺少查询起点姓名或称呼词。' };
+            const err = validateRelTerm(ir.relTerm); if (err) return { ok: false, message: err }; return querySetRelation(ir.person, ir.relTerm);
+        }
+        case 'common_ancestor': return findCommonAncestor(ir.a, ir.b);
+        case 'unsupported': return { ok: false, type: 'unsupported', message: ir.message || '暂不支持此类查询。' };
+        default: return { ok: false, message: `不认识的 IR 类型："${ir.type}"` };
+    }
+}
+
+async function aiCallAgent(text) {
+    const resp = await fetchWithTimeout(AGENT_CONFIG.workerUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [{ role: 'system', content: IR_SYSTEM_PROMPT }, { role: 'user', content: text }], response_format: { type: 'json_object' } }) }, AGENT_CONFIG.timeout);
+    if (!resp.ok) throw new Error(`Worker 返回 ${resp.status}：${(await resp.text().catch(() => '')).slice(0, 200)}`);
+    const data = await resp.json(), msg = data.choices?.[0]?.message;
+    if (!msg || !msg.content) throw new Error('Worker 返回格式异常');
+    let content = String(msg.content).trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/, '').trim();
+    let ir; try { ir = JSON.parse(content); } catch (e) { throw new Error('模型输出不是合法 JSON：' + content.slice(0, 200)); }
+    window._lastIR = ir; return execIR(ir);
+}
+
+function tryParseTwoDescriptions(text) {
+    if (!peopleData) return null;
+    const parts = text.split(/[和跟与]/);
+    if (parts.length < 2) return null;
+    const names = Object.keys(peopleData).sort((a, b) => b.length - a.length);
+    const parseSide = (s) => {
+        for (const n of names) {
+            const idx = s.indexOf(n); if (idx === -1) continue;
+            const after = s.slice(idx + n.length), m = after.match(/^的([^\s，,。.？?！!]+?)(?:是|有|什么|谁|多少|几个|哪些|$)/);
+            if (m) { let relTerm = m[1].replace(/[的是谁有哪些？?，,。.\s]/g, '').trim(); const path = parseRelTermToPath(relTerm); return path ? { person: n, path } : (relTerm ? { person: n, relTerm } : { person: n }); }
+            return { person: n };
+        }
+        return null;
+    };
+    if (parts.length === 2) {
+        const left = parseSide(parts[0]), right = parseSide(parts[1]);
+        return (left && right && (left.relTerm || left.path || right.relTerm || right.path)) ? { type: 'relation_between', left, right } : null;
+    }
+    const lastAndIdx = text.lastIndexOf(parts[parts.length - 1]);
+    if (lastAndIdx > 0) {
+        const leftPart = text.slice(0, lastAndIdx).replace(/[和跟与]/g, '、');
+        const rightPart = text.slice(lastAndIdx + 1);
+        const left = parseSide(leftPart), right = parseSide(rightPart);
+        if (left && right && (left.relTerm || left.path || right.relTerm || right.path)) {
+            return { type: 'relation_between', left, right };
+        }
+    }
+    return null;
+}
+
+function aiUpdateStatusLine() { const line = document.getElementById('aiStatusLine'); if (line) line.textContent = AGENT_CONFIG.enabled ? '🤖 AI 管家已启用（本地优先，AI 兜底，5 秒超时）' : '🤖 AI 管家已关闭，使用规则匹配'; }
+aiUpdateStatusLine();
+
+function speak(text) { if (!text || !window.speechSynthesis) return; try { window.speechSynthesis.cancel(); const utter = new SpeechSynthesisUtterance(text); utter.lang = 'zh-CN'; window.speechSynthesis.speak(utter); } catch (e) {} }
+
+const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+const speechRecognitionSupported = !!SpeechRecognitionAPI;
+let recognizer = null, isListening = false;
 function setupSpeechRecognition() {
-    const micBtn = document.getElementById('micBtn'); const micStatus = document.getElementById('micStatus');
-    micBtn.disabled = false;
-    micBtn.title = '请点击输入框，用手机键盘上的麦克风说话';
-    micStatus.textContent = '（手机端请点击输入框，使用输入法自带的麦克风）';
-    micBtn.addEventListener('click', () => { document.getElementById('voiceQueryInput').focus(); micStatus.textContent = '🎤 已唤起键盘，请点击键盘上的麦克风图标说话...'; });
+    const micBtn = document.getElementById('micBtn'), micStatus = document.getElementById('micStatus');
+    if (!speechRecognitionSupported) { micBtn.disabled = true; micBtn.title = '当前浏览器不支持语音识别，请改用 Chrome / Edge，或直接打字'; micStatus.textContent = '（当前浏览器不支持语音识别，可直接打字查询）'; return; }
+    let currentRecognizer = null, queryTriggered = false, autoStopTimer = null, forceStopTimer = null;
+    function resetListeningUI(msg) { clearTimeout(autoStopTimer); clearTimeout(forceStopTimer); isListening = false; micBtn.classList.remove('listening'); if (msg) micStatus.textContent = msg; }
+    function createRecognizer() {
+        const r = new SpeechRecognitionAPI(); r.lang = 'zh-CN'; r.continuous = false; r.interimResults = true;
+        r.onstart = () => { isListening = true; queryTriggered = false; document.getElementById('voiceQueryInput').value = ''; micBtn.classList.add('listening'); micStatus.textContent = '🎙️ 正在听...'; clearTimeout(autoStopTimer); autoStopTimer = setTimeout(() => { try { r.stop(); } catch(e){} }, 10000); };
+        r.onresult = (e) => { let transcript = ''; for (let i = 0; i < e.results.length; i++) transcript += e.results[i][0].transcript; document.getElementById('voiceQueryInput').value = transcript; if (e.results[e.results.length - 1].isFinal) { queryTriggered = true; micStatus.textContent = '✅ 识别完成，正在查询...'; runNaturalQueryAgent(transcript); } };
+        r.onerror = (e) => { resetListeningUI(`⚠️ 语音识别出错：${e.error}`); };
+        r.onend = () => { const wasTriggered = queryTriggered; resetListeningUI(null); currentRecognizer = null; if (!wasTriggered) { const text = document.getElementById('voiceQueryInput').value.trim(); if (text) { micStatus.textContent = '✅ 已结束，正在查询...'; runNaturalQueryAgent(text); } else micStatus.textContent = '⚠️ 没有识别到内容。'; } };
+        return r;
+    }
+    micBtn.addEventListener('click', () => {
+        if (isListening) { try { currentRecognizer?.abort(); } catch (e) {} resetListeningUI('已手动停止。'); currentRecognizer = null; return; }
+        currentRecognizer = createRecognizer();
+        try { currentRecognizer.start(); clearTimeout(forceStopTimer); forceStopTimer = setTimeout(() => { if (isListening) { try { currentRecognizer?.abort(); } catch (e) {} resetListeningUI('⚠️ 识别超时，已自动复位。'); currentRecognizer = null; } }, 15000); }
+        catch (e) { micStatus.textContent = '⚠️ 启动语音识别失败：' + e.message; }
+    });
 }
 setupSpeechRecognition();
-document.getElementById('voiceQueryBtn').addEventListener('click', () => { runNaturalQuery(document.getElementById('voiceQueryInput').value.trim()); });
-document.getElementById('voiceQueryInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') runNaturalQuery(e.target.value.trim()); });
+document.getElementById('voiceQueryBtn').addEventListener('click', () => runNaturalQueryAgent(document.getElementById('voiceQueryInput').value.trim()));
+document.getElementById('voiceQueryInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') runNaturalQueryAgent(e.target.value.trim()); });
 
-// --------------------- 运行环境与数据加载 ---------------------
 const isOnline = window.location.protocol === 'https:';
 const GITHUB_BASE = 'https://fengzd45.github.io/codex1/%E8%B5%84%E6%96%99/';
-let folderHandle = null; let manifestCache = null; let peopleData = null; let dataLoaded = false; let _fromStatModal = false;
-
-const folderStatusSpan = document.getElementById('folderStatus'); const outputPre = document.getElementById('output');
-const modalMedia = document.getElementById('mediaModal'); const modalTitle = document.getElementById('modalTitle'); const modalBody = document.getElementById('modalBody');
-const closeModalBtn = document.getElementById('closeModalBtn'); const selectFolderBtn = document.getElementById('selectFolderBtn'); const statModal = document.getElementById('statModal');
-const micStatus = document.getElementById('micStatus');
+let folderHandle = null, manifestCache = null, peopleData = null, dataLoaded = false, _fromStatModal = false;
+const folderStatusSpan = document.getElementById('folderStatus'), outputPre = document.getElementById('output'), modalMedia = document.getElementById('mediaModal'), modalTitle = document.getElementById('modalTitle'), modalBody = document.getElementById('modalBody'), closeModalBtn = document.getElementById('closeModalBtn'), selectFolderBtn = document.getElementById('selectFolderBtn'), statModal = document.getElementById('statModal');
 
 function closeModal() { modalMedia.classList.remove('active'); if (_fromStatModal) { statModal.classList.add('active'); _fromStatModal = false; } }
 function openModal() { modalMedia.classList.add('active'); }
@@ -521,10 +871,11 @@ closeModalBtn.onclick = closeModal; modalMedia.addEventListener('click', (e) => 
 document.getElementById('closeStatModalBtn').addEventListener('click', function(e) { e.stopPropagation(); statModal.classList.remove('active'); _fromStatModal = false; });
 statModal.addEventListener('click', function(e) { if (e.target === statModal) { statModal.classList.remove('active'); _fromStatModal = false; } });
 
-async function loadManifest() { if (manifestCache) return manifestCache; try { const resp = await fetch('https://fengzd45.github.io/codex1/manifest.json'); if (resp.ok) { manifestCache = await resp.json(); return manifestCache; } } catch(e) { console.warn('清单加载失败', e); } return null; }
+async function loadManifest() { if (manifestCache) return manifestCache; try { const resp = await fetch('https://fengzd45.github.io/codex1/manifest.json'); if (resp.ok) { manifestCache = await resp.json(); return manifestCache; } } catch(e) {} return null; }
 async function listOnlineFiles(personName) {
-    const manifest = await loadManifest(); if (manifest && manifest[personName]) { return manifest[personName].map(fname => ({ name: fname, url: `${GITHUB_BASE}${encodeURIComponent(personName)}/${encodeURIComponent(fname)}` })); }
-    const candidates = [`${personName}.jpg`, `${personName}.jpeg`, `${personName}.png`, `${personName}.gif`, `${personName}.txt`, `${personName}.md`]; const found = [];
+    const manifest = await loadManifest();
+    if (manifest && manifest[personName]) return manifest[personName].map(fname => ({ name: fname, url: `${GITHUB_BASE}${encodeURIComponent(personName)}/${encodeURIComponent(fname)}` }));
+    const candidates = [`${personName}.jpg`, `${personName}.jpeg`, `${personName}.png`, `${personName}.gif`, `${personName}.txt`, `${personName}.md`], found = [];
     for (const fname of candidates) { const url = `${GITHUB_BASE}${encodeURIComponent(personName)}/${encodeURIComponent(fname)}`; try { const resp = await fetch(url, { method: 'HEAD' }); if (resp.ok) found.push({ name: fname, url }); } catch(e) {} }
     return found;
 }
@@ -533,177 +884,261 @@ async function previewOnlineFile(url, fileName) {
     if (['jpg','jpeg','png','gif','webp'].includes(ext)) return `<div><img src="${url}" style="max-height:280px;"><br><a href="${url}" download>下载</a></div>`;
     if (['mp4','webm'].includes(ext)) return `<video controls src="${url}"></video><br><a href="${url}" download>下载</a>`;
     if (['mp3','wav'].includes(ext)) return `<audio controls src="${url}"></audio><br><a href="${url}" download>下载</a>`;
-    if (ext === 'txt' || ext === 'md') { try { const resp = await fetch(url); let text = await resp.text(); let linkified = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#8b5a2b;text-decoration:underline;">$1</a>'); return `<div class="preview-text">${linkified}</div><br><a href="${url}" download>下载文件</a>`; } catch(e) { return `<a href="${url}" download>下载 ${fileName}</a>`; } }
+    if (ext === 'txt') { try { const resp = await fetch(url); let text = await resp.text(); return `<div class="preview-text" style="white-space:pre-wrap;background:#f8f9fa;padding:12px;border-radius:12px;">${text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#8b5a2b;text-decoration:underline;">$1</a>')}</div><br><a href="${url}" download>下载文件</a>`; } catch(e) { return `<a href="${url}" download>下载 ${fileName}</a>`; } }
     return `<a href="${url}" download>下载 ${fileName}</a>`;
 }
 async function previewLocalFile(file, fileName) {
-    const url = URL.createObjectURL(file); const ext = fileName.split('.').pop().toLowerCase(); let html = '';
+    const url = URL.createObjectURL(file), ext = fileName.split('.').pop().toLowerCase(); let html = '';
     if (['jpg','jpeg','png','gif','webp'].includes(ext)) html = `<div><img src="${url}" style="max-height:280px;"><br><a href="${url}" download>下载</a></div>`;
     else if (['mp4','webm'].includes(ext)) html = `<video controls src="${url}"></video><br><a href="${url}" download>下载</a>`;
     else if (['mp3','wav'].includes(ext)) html = `<audio controls src="${url}"></audio><br><a href="${url}" download>下载</a>`;
-    else if (ext === 'txt' || ext === 'md') { try { let text = await file.text(); let linkified = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#8b5a2b;text-decoration:underline;">$1</a>'); html = `<div class="preview-text">${linkified}</div><br><a href="${url}" download>下载文件</a>`; } catch(e) { html = `<a href="${url}" download>下载 ${fileName}</a>`; } }
+    else if (ext === 'txt') { try { let text = await file.text(); html = `<div class="preview-text" style="white-space:pre-wrap;background:#f8f9fa;padding:12px;border-radius:12px;">${text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" style="color:#8b5a2b;text-decoration:underline;">$1</a>')}</div><br><a href="${url}" download>下载文件</a>`; } catch(e) { html = `<a href="${url}" download>下载 ${fileName}</a>`; } }
     else html = `<a href="${url}" download>下载 ${fileName}</a>`;
     setTimeout(() => URL.revokeObjectURL(url), 60000); return html;
 }
-
 selectFolderBtn.onclick = async () => {
-    if (isOnline) { folderStatusSpan.innerHTML = `🌐 线上模式：资料自动从 GitHub 加载，无需授权。`; return; }
+    if (isOnline) { folderStatusSpan.innerHTML = `🌐 线上模式：资料自动从 GitHub 加载，无需授权。`; folderStatusSpan.style.color = '#2c5a2c'; return; }
     try {
         folderStatusSpan.innerHTML = '📂 请在弹窗中选择包含 family_data.jsonl 和「资料」文件夹的目录';
-        const rootHandle = await window.showDirectoryPicker(); window.rootHandle = rootHandle; let foundJsonl = false, foundData = false;
-        try { const fileHandle = await rootHandle.getFileHandle('family_data.jsonl'); const file = await fileHandle.getFile(); const parsed = parseJsonl(await file.text()); if (Object.keys(parsed).length > 0) { peopleData = parsed; dataLoaded = true; foundJsonl = true; } } catch (e) {}
-        for await (const entry of rootHandle.values()) { if (entry.kind === 'directory' && entry.name === '资料') { folderHandle = entry; foundData = true; break; } }
-        if (foundJsonl && foundData) { folderStatusSpan.innerHTML = `✅ 成功加载 family_data.jsonl（${Object.keys(peopleData).length} 人）并授权「资料」文件夹。`; enableUI(); outputPre.innerHTML = `<pre>✅ 家谱数据已加载！共 ${Object.keys(peopleData).length} 位人物。<br>已授权「资料」文件夹，点击姓名可查看多媒体资料。</pre>`; document.getElementById('startName').value = peopleData['冯宗德'] ? '冯宗德' : (Object.keys(peopleData)[0] || ''); }
-        else { folderStatusSpan.innerHTML = `❌ 未找到 family_data.jsonl 或「资料」文件夹。`; }
-    } catch (err) { if (err.name !== 'AbortError') console.error(err); folderStatusSpan.innerHTML = '⚠️ 未选择文件夹或授权失败'; }
+        const rootHandle = await window.showDirectoryPicker(); window.rootHandle = rootHandle;
+        let foundJsonl = false, foundData = false, jsonlContent = '';
+        try { const fileHandle = await rootHandle.getFileHandle('family_data.jsonl'); const file = await fileHandle.getFile(); jsonlContent = await file.text(); const parsed = parseJsonl(jsonlContent); if (Object.keys(parsed).length > 0) { peopleData = parsed; dataLoaded = true; foundJsonl = true; } } catch (e) {}
+        let foundFolder = null; for await (const entry of rootHandle.values()) { if (entry.kind === 'directory' && entry.name === '资料') { foundFolder = entry; break; } }
+        if (foundFolder) { folderHandle = foundFolder; foundData = true; }
+        if (foundJsonl && foundData) { folderStatusSpan.innerHTML = `✅ 成功加载 family_data.jsonl（${Object.keys(peopleData).length} 人）并授权「资料」文件夹。`; folderStatusSpan.style.color = '#2c5a2c'; enableUI(); outputPre.innerHTML = `<pre>✅ 家谱数据已加载！共 ${Object.keys(peopleData).length} 位人物。<br>已授权「资料」文件夹，点击姓名可查看多媒体资料。</pre>`; if (peopleData['冯宗德']) document.getElementById('startName').value = '冯宗德'; else document.getElementById('startName').value = Object.keys(peopleData)[0] || ''; }
+        else if (foundJsonl && !foundData) { folderStatusSpan.innerHTML = `✅ 加载 family_data.jsonl 成功（${Object.keys(peopleData).length} 人），但未找到「资料」文件夹。`; folderStatusSpan.style.color = '#c00'; enableUI(); outputPre.innerHTML = `<pre>✅ 家谱数据已加载！共 ${Object.keys(peopleData).length} 位人物。<br>⚠️ 未找到「资料」文件夹。</pre>`; }
+        else { folderStatusSpan.innerHTML = `❌ 未找到 family_data.jsonl 或「资料」文件夹。`; folderStatusSpan.style.color = '#c00'; }
+    } catch (err) { if (err.name !== 'AbortError') console.error(err); folderStatusSpan.innerHTML = '⚠️ 未选择文件夹或授权失败'; folderStatusSpan.style.color = '#c00'; }
 };
 
 async function showPersonMediaInModal(personName) {
     modalTitle.innerHTML = `📁 ${escapeHtml(personName)} 的资料`; modalBody.innerHTML = `<div class="empty-media-modal">⏳ 正在加载 ${escapeHtml(personName)} 的资料...</div>`; openModal();
     if (isOnline) {
-        const files = await listOnlineFiles(personName); if (files.length === 0) { modalBody.innerHTML = `<div class="empty-media-modal">📭 该人物暂无线上资料文件。</div>`; return; }
-        let listHtml = `<div class="file-list-modal">`; for (const f of files) listHtml += `<div class="file-item-modal" data-url="${escapeHtml(f.url)}" data-name="${escapeHtml(f.name)}"><span class="file-icon-modal">📄</span><span class="file-name-modal">${escapeHtml(f.name)}</span></div>`; listHtml += `</div><div id="onlinePreviewArea" class="media-preview-modal"><div class="empty-media-modal">点击上方文件预览</div></div>`; modalBody.innerHTML = listHtml;
-        const previewDiv = document.getElementById('onlinePreviewArea'); document.querySelectorAll('.file-item-modal').forEach(el => { el.onclick = async () => { if (previewDiv) previewDiv.innerHTML = await previewOnlineFile(el.getAttribute('data-url'), el.getAttribute('data-name')); }; }); if (files[0] && previewDiv) previewDiv.innerHTML = await previewOnlineFile(files[0].url, files[0].name); return;
+        const files = await listOnlineFiles(personName);
+        if (!files.length) { modalBody.innerHTML = `<div class="empty-media-modal">📭 该人物暂无线上资料文件。</div>`; return; }
+        let listHtml = `<div class="file-list-modal">`; for (const f of files) listHtml += `<div class="file-item-modal" data-url="${escapeHtml(f.url)}" data-name="${escapeHtml(f.name)}"><span class="file-icon-modal">📄</span><span class="file-name-modal">${escapeHtml(f.name)}</span></div>`;
+        listHtml += `</div><div id="onlinePreviewArea" class="media-preview-modal"><div class="empty-media-modal">点击上方文件预览</div></div>`; modalBody.innerHTML = listHtml;
+        const previewDiv = document.getElementById('onlinePreviewArea');
+        document.querySelectorAll('.file-item-modal').forEach(el => { el.onclick = async () => { if (previewDiv) previewDiv.innerHTML = await previewOnlineFile(el.getAttribute('data-url'), el.getAttribute('data-name')); }; });
+        if (files[0] && previewDiv) previewDiv.innerHTML = await previewOnlineFile(files[0].url, files[0].name); return;
     }
     if (!folderHandle) { modalBody.innerHTML = `<div class="empty-media-modal">⚠️ 请先点击「加载资料库」按钮，授权「资料」文件夹</div>`; return; }
     try {
-        const personDir = await folderHandle.getDirectoryHandle(personName); const localFiles = [];
+        const personDir = await folderHandle.getDirectoryHandle(personName), localFiles = [];
         for await (const entry of personDir.values()) if (entry.kind === 'file') localFiles.push({ name: entry.name, handle: entry });
-        if (localFiles.length === 0) { modalBody.innerHTML = `<div class="empty-media-modal">📭 该人物暂无本地资料文件。</div>`; return; }
-        localFiles.sort((a,b) => a.name.localeCompare(b.name)); let listHtml = `<div class="file-list-modal">`; for (const f of localFiles) listHtml += `<div class="file-item-modal" data-filename="${escapeHtml(f.name)}"><span class="file-icon-modal">📄</span><span class="file-name-modal">${escapeHtml(f.name)}</span></div>`; listHtml += `</div><div id="localPreviewArea" class="media-preview-modal"><div class="empty-media-modal">点击上方文件预览</div></div>`; modalBody.innerHTML = listHtml;
-        const previewDiv = document.getElementById('localPreviewArea'); document.querySelectorAll('.file-item-modal').forEach(el => { const fname = el.getAttribute('data-filename'); const fileObj = localFiles.find(f => f.name === fname); if (fileObj) el.onclick = async () => { if (previewDiv) { previewDiv.innerHTML = '<div class="empty-media-modal">⏳ 加载中...</div>'; try { previewDiv.innerHTML = await previewLocalFile(await fileObj.handle.getFile(), fileObj.name); } catch (e) { previewDiv.innerHTML = `<div class="empty-media-modal">❌ 读取失败</div>`; } } }; });
-        if (localFiles[0] && previewDiv) { try { previewDiv.innerHTML = await previewLocalFile(await localFiles[0].handle.getFile(), localFiles[0].name); } catch (e) {} }
-    } catch (err) { modalBody.innerHTML = `<div class="empty-media-modal">❌ 找不到“${escapeHtml(personName)}”文件夹。</div>`; }
+        if (!localFiles.length) { modalBody.innerHTML = `<div class="empty-media-modal">📭 该人物暂无本地资料文件。</div>`; return; }
+        localFiles.sort((a,b) => a.name.localeCompare(b.name));
+        let listHtml = `<div class="file-list-modal">`; for (const f of localFiles) listHtml += `<div class="file-item-modal" data-filename="${escapeHtml(f.name)}"><span class="file-icon-modal">📄</span><span class="file-name-modal">${escapeHtml(f.name)}</span></div>`;
+        listHtml += `</div><div id="localPreviewArea" class="media-preview-modal"><div class="empty-media-modal">点击上方文件预览</div></div>`; modalBody.innerHTML = listHtml;
+        const previewDiv = document.getElementById('localPreviewArea');
+        document.querySelectorAll('.file-item-modal').forEach(el => {
+            const fname = el.getAttribute('data-filename'), fileObj = localFiles.find(f => f.name === fname);
+            if (fileObj) el.onclick = async () => { if (previewDiv) { previewDiv.innerHTML = '<div class="empty-media-modal">⏳ 加载中...</div>'; try { previewDiv.innerHTML = await previewLocalFile(await fileObj.handle.getFile(), fileObj.name); } catch (e) { previewDiv.innerHTML = `<div class="empty-media-modal">❌ 读取失败</div>`; } } };
+        });
+        if (localFiles[0] && previewDiv) { try { previewDiv.innerHTML = await previewLocalFile(await localFiles[0].handle.getFile(), localFiles[0].name); } catch (e) { previewDiv.innerHTML = `<div class="empty-media-modal">⚠️ 无法预览默认文件</div>`; } }
+    } catch (err) { console.error(err); modalBody.innerHTML = `<div class="empty-media-modal">❌ 找不到“${escapeHtml(personName)}”文件夹。</div>`; }
 }
 
-// --------------------- 图形树与统计（保留原逻辑） ---------------------
 let treeState = { canvas: null, ctx: null, rootName: "", baseNodes: new Set(), dynamicNodes: new Set(), expanded: new Set(), offsetX: 0, offsetY: 0, scale: 0.8, nodesList: [] };
+
 function buildBaseSet(rootPerson) {
-    if (!rootPerson) return new Set(); const nodes = new Set(); nodes.add(rootPerson.name);
+    if (!rootPerson) return new Set(); const nodes = new Set([rootPerson.name]);
     function collectAncestors(p, gen) { if (!p || gen > 3) return; if (p.fatherObj) { nodes.add(p.fatherObj.name); collectAncestors(p.fatherObj, gen+1); } if (p.motherObj) { nodes.add(p.motherObj.name); collectAncestors(p.motherObj, gen+1); } }
     collectAncestors(rootPerson, 1);
     function collectDescendants(p, gen) { if (!p || gen > 3) return; for (const child of p.children) { nodes.add(child.name); collectDescendants(child, gen+1); } }
     collectDescendants(rootPerson, 1);
-    for (const spName of rootPerson.spouse) { const spouse = peopleData[spName]; if (spouse) { nodes.add(spouse.name); if (spouse.fatherObj) nodes.add(spouse.fatherObj.name); if (spouse.motherObj) nodes.add(spouse.motherObj.name); if (spouse.fatherObj?.fatherObj) nodes.add(spouse.fatherObj.fatherObj.name); if (spouse.fatherObj?.motherObj) nodes.add(spouse.fatherObj.motherObj.name); if (spouse.motherObj?.fatherObj) nodes.add(spouse.motherObj.fatherObj.name); if (spouse.motherObj?.motherObj) nodes.add(spouse.motherObj.motherObj.name); } }
-    for (const child of rootPerson.children) { for (const sp of child.spouse) { const spouse = peopleData[sp]; if (spouse) { nodes.add(sp); if (spouse.fatherObj) nodes.add(spouse.fatherObj.name); if (spouse.motherObj) nodes.add(spouse.motherObj.name); } } }
+    for (const spName of rootPerson.spouse) { const spouse = peopleData[spName]; if (spouse) { nodes.add(spouse.name); if (spouse.fatherObj) nodes.add(spouse.fatherObj.name); if (spouse.motherObj) nodes.add(spouse.motherObj.name); } }
+    for (const child of rootPerson.children) for (const sp of child.spouse) { const spouse = peopleData[sp]; if (spouse) { nodes.add(sp); if (spouse.fatherObj) nodes.add(spouse.fatherObj.name); if (spouse.motherObj) nodes.add(spouse.motherObj.name); } }
     return nodes;
 }
 function toggleNode(nodeName) {
-    const node = peopleData[nodeName]; if (!node || node.children.length === 0) return false;
-    const rootPerson = peopleData[treeState.rootName]; const isParentOfRoot = rootPerson && (rootPerson.fatherObj?.name === nodeName || rootPerson.motherObj?.name === nodeName);
-    let targetChildren = isParentOfRoot ? node.children.filter(child => child.name !== treeState.rootName) : node.children; if (targetChildren.length === 0) return false;
+    const node = peopleData[nodeName]; if (!node || !node.children.length) return false;
+    const rootPerson = peopleData[treeState.rootName], isParentOfRoot = rootPerson && (rootPerson.fatherObj?.name === nodeName || rootPerson.motherObj?.name === nodeName);
+    let targetChildren = isParentOfRoot ? node.children.filter(child => child.name !== treeState.rootName) : node.children;
+    if (!targetChildren.length) return false;
     if (treeState.expanded.has(nodeName)) { for (const child of targetChildren) { treeState.dynamicNodes.delete(child.name); if (treeState.expanded.has(child.name)) { for (const grand of child.children) treeState.dynamicNodes.delete(grand.name); treeState.expanded.delete(child.name); } } treeState.expanded.delete(nodeName); }
     else { for (const child of targetChildren) treeState.dynamicNodes.add(child.name); treeState.expanded.add(nodeName); }
     renderTree(); return true;
 }
 function renderTree() {
-    if (!treeState.canvas || !treeState.ctx) return; const ctx = treeState.ctx, canvas = treeState.canvas; const allNodes = new Set([...treeState.baseNodes, ...treeState.dynamicNodes]); if (allNodes.size === 0) return;
-    const genMap = new Map(), queue = [{ name: treeState.rootName, gen: 0 }], visited = new Set(); visited.add(treeState.rootName); genMap.set(treeState.rootName, 0);
+    if (!treeState.canvas || !treeState.ctx) return; const ctx = treeState.ctx, canvas = treeState.canvas, allNodes = new Set([...treeState.baseNodes, ...treeState.dynamicNodes]); if (!allNodes.size) return;
+    const genMap = new Map(), queue = [{ name: treeState.rootName, gen: 0 }], visited = new Set([treeState.rootName]); genMap.set(treeState.rootName, 0);
     while (queue.length) {
-        const { name, gen } = queue.shift(); const p = peopleData[name]; if (!p) continue;
+        const { name, gen } = queue.shift(), p = peopleData[name]; if (!p) continue;
         for (const child of p.children) if (allNodes.has(child.name) && !visited.has(child.name)) { visited.add(child.name); genMap.set(child.name, gen + 1); queue.push({ name: child.name, gen: gen + 1 }); }
         if (p.fatherObj && allNodes.has(p.fatherObj.name) && !visited.has(p.fatherObj.name)) { visited.add(p.fatherObj.name); genMap.set(p.fatherObj.name, gen - 1); queue.push({ name: p.fatherObj.name, gen: gen - 1 }); }
         if (p.motherObj && allNodes.has(p.motherObj.name) && !visited.has(p.motherObj.name)) { visited.add(p.motherObj.name); genMap.set(p.motherObj.name, gen - 1); queue.push({ name: p.motherObj.name, gen: gen - 1 }); }
         for (const spName of p.spouse) if (allNodes.has(spName) && !visited.has(spName)) { visited.add(spName); genMap.set(spName, gen); queue.push({ name: spName, gen: gen }); }
     }
-    const levels = new Map();
-    for (const name of allNodes) { const gen = genMap.get(name); if (gen === undefined) continue; if (!levels.has(gen)) levels.set(gen, []); levels.get(gen).push({ name, person: peopleData[name] }); }
+    const levels = new Map(); for (const name of allNodes) { const gen = genMap.get(name); if (gen === undefined) continue; if (!levels.has(gen)) levels.set(gen, []); levels.get(gen).push({ name, person: peopleData[name] }); }
     for (const [gen, persons] of levels.entries()) {
         persons.sort((a,b) => (a.person.birthYear ?? 9999) - (b.person.birthYear ?? 9999)); const adjusted = [], used = new Set();
-        for (let i = 0; i < persons.length; i++) { if (used.has(persons[i].name)) continue; adjusted.push(persons[i]); used.add(persons[i].name); for (const spName of persons[i].person.spouse) { const spouse = persons.find(p => p.name === spName); if (spouse && !used.has(spouse.name)) { adjusted.push(spouse); used.add(spouse.name); break; } } }
-        levels.set(gen, adjusted);
+        for (let i = 0; i < persons.length; i++) { if (used.has(persons[i].name)) continue; adjusted.push(persons[i]); used.add(persons[i].name); for (const spName of persons[i].person.spouse) { const spouse = persons.find(p => p.name === spName); if (spouse && !used.has(spouse.name)) { adjusted.push(spouse); used.add(spouse.name); break; } } } levels.set(gen, adjusted);
     }
-    const sortedGens = Array.from(levels.keys()).sort((a,b) => a - b); const yStep = 140, xStep = 150; const positions = new Map();
-    for (const gen of sortedGens) { const persons = levels.get(gen); const startX = -(persons.length - 1) * xStep / 2; persons.forEach((item, idx) => { positions.set(item.name, { x: startX + idx * xStep, y: gen * yStep }); }); }
+    const sortedGens = Array.from(levels.keys()).sort((a,b) => a - b), yStep = 140, xStep = 150, positions = new Map();
+    for (const gen of sortedGens) { const persons = levels.get(gen), startX = -(persons.length - 1) * xStep / 2; persons.forEach((item, idx) => positions.set(item.name, { x: startX + idx * xStep, y: gen * yStep })); }
     ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.save(); ctx.translate(treeState.offsetX, treeState.offsetY); ctx.scale(treeState.scale, treeState.scale);
     ctx.beginPath(); ctx.strokeStyle = '#cca47d'; ctx.lineWidth = 2.5;
-    for (const name of allNodes) { const p = peopleData[name]; if (!p) continue; const pos = positions.get(name); if (!pos) continue; for (const child of p.children) { if (allNodes.has(child.name)) { const cpos = positions.get(child.name); if (cpos) { ctx.moveTo(pos.x, pos.y); ctx.lineTo(cpos.x, cpos.y); } } } }
-    ctx.stroke(); ctx.beginPath(); ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 2.8; const drawnPairs = new Set();
-    for (const name of allNodes) { const p = peopleData[name]; if (!p || p.sex !== '男') continue; const pos = positions.get(name); if (!pos) continue; for (const spName of p.spouse) { if (allNodes.has(spName) && !drawnPairs.has(`${name}|${spName}`) && !drawnPairs.has(`${spName}|${name}`)) { const spos = positions.get(spName); if (spos) { ctx.moveTo(pos.x, pos.y); ctx.lineTo(spos.x, spos.y); drawnPairs.add(`${name}|${spName}`); } } } }
-    ctx.stroke(); treeState.nodesList = [];
+    for (const name of allNodes) { const p = peopleData[name], pos = positions.get(name); if (!p || !pos) continue; for (const child of p.children) if (allNodes.has(child.name)) { const cpos = positions.get(child.name); if (cpos) { ctx.moveTo(pos.x, pos.y); ctx.lineTo(cpos.x, cpos.y); } } } ctx.stroke();
+    ctx.beginPath(); ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 2.8; const drawnPairs = new Set();
+    for (const name of allNodes) { const p = peopleData[name]; if (!p || p.sex !== '男') continue; const pos = positions.get(name); if (!pos) continue; for (const spName of p.spouse) if (allNodes.has(spName) && !drawnPairs.has(`${name}|${spName}`) && !drawnPairs.has(`${spName}|${name}`)) { const spos = positions.get(spName); if (spos) { ctx.moveTo(pos.x, pos.y); ctx.lineTo(spos.x, spos.y); drawnPairs.add(`${name}|${spName}`); } } } ctx.stroke();
+    treeState.nodesList = [];
     for (const name of allNodes) {
-        const p = peopleData[name]; const pos = positions.get(name); if (!p || !pos) continue; const isAlive = !p.info || !/卒|故|病故|去世/.test(p.info);
+        const p = peopleData[name], pos = positions.get(name); if (!p || !pos) continue;
+        const isAlive = !p.info || !/卒|故|病故|去世/.test(p.info);
         ctx.beginPath(); ctx.arc(pos.x, pos.y, 28, 0, 2 * Math.PI); ctx.fillStyle = isAlive ? '#2ecc71' : '#95a5a6'; ctx.fill(); ctx.strokeStyle = '#8b5a2b'; ctx.lineWidth = 2; ctx.stroke();
-        ctx.fillStyle = '#000'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; const nameChars = name.split(''); if (nameChars.length <= 2) ctx.fillText(name, pos.x, pos.y); else { ctx.fillText(nameChars.slice(0,2).join(''), pos.x, pos.y - 6); ctx.fillText(nameChars.slice(2).join(''), pos.x, pos.y + 6); }
+        ctx.fillStyle = '#000'; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; const nameChars = name.split('');
+        if (nameChars.length <= 2) ctx.fillText(name, pos.x, pos.y); else { ctx.fillText(nameChars.slice(0,2).join(''), pos.x, pos.y - 6); ctx.fillText(nameChars.slice(2).join(''), pos.x, pos.y + 6); }
         if (p.birthYear) { ctx.fillStyle = '#555'; ctx.font = '10px sans-serif'; ctx.fillText(p.birthYear, pos.x, pos.y + 38); }
-        treeState.nodesList.push({ name: name, x: pos.x, y: pos.y });
+        treeState.nodesList.push({ name, x: pos.x, y: pos.y });
     }
     ctx.restore();
 }
 function initTree(rootName) {
-    treeState.rootName = rootName; const rootPerson = peopleData[rootName]; if (!rootPerson) return; treeState.baseNodes = buildBaseSet(rootPerson); treeState.dynamicNodes = new Set(); treeState.expanded = new Set(); treeState.scale = 0.75;
-    treeState.canvas = document.getElementById('treeCanvas'); treeState.ctx = treeState.canvas.getContext('2d'); document.getElementById('treeModal').classList.add('active');
-    setTimeout(() => { const container = document.getElementById('treeCanvasContainer'); const rect = container.getBoundingClientRect(); treeState.canvas.width = Math.max(rect.width, window.innerWidth * 0.95); treeState.canvas.height = Math.max(rect.height, window.innerHeight * 0.75); treeState.offsetX = treeState.canvas.width / 2; treeState.offsetY = 150; renderTree(); }, 120);
+    treeState.rootName = rootName; const rootPerson = peopleData[rootName]; if (!rootPerson) return;
+    treeState.baseNodes = buildBaseSet(rootPerson); treeState.dynamicNodes = new Set(); treeState.expanded = new Set(); treeState.scale = 0.75; treeState.canvas = document.getElementById('treeCanvas'); treeState.ctx = treeState.canvas.getContext('2d');
+    document.getElementById('treeModal').classList.add('active');
+    setTimeout(() => { const container = document.getElementById('treeCanvasContainer'), rect = container.getBoundingClientRect(), finalWidth = Math.max(rect.width, window.innerWidth * 0.95), finalHeight = Math.max(rect.height, window.innerHeight * 0.75); treeState.canvas.width = finalWidth; treeState.canvas.height = finalHeight; treeState.offsetX = finalWidth / 2; treeState.offsetY = 150; renderTree(); }, 120);
 }
 function bindGestures() {
-    const canvas = document.getElementById('treeCanvas'); if (!canvas) return; let isDragging = false, dragStart = { x: 0, y: 0 }, touchStartDist = 0, touchStartScale = 1;
+    const canvas = document.getElementById('treeCanvas'); if (!canvas) return;
+    let isDragging = false, dragStart = { x: 0, y: 0 }, touchStartDist = 0, touchStartScale = 1;
     const getTouchDistance = (touches) => Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
     canvas.addEventListener('mousedown', (e) => { isDragging = true; dragStart.x = e.clientX - treeState.offsetX; dragStart.y = e.clientY - treeState.offsetY; e.preventDefault(); });
     window.addEventListener('mousemove', (e) => { if (!isDragging) return; treeState.offsetX = e.clientX - dragStart.x; treeState.offsetY = e.clientY - dragStart.y; renderTree(); });
     window.addEventListener('mouseup', () => { isDragging = false; });
-    canvas.addEventListener('wheel', (e) => { e.preventDefault(); let factor = e.deltaY > 0 ? 0.9 : 1.1; treeState.scale = Math.min(2.5, Math.max(0.3, treeState.scale * factor)); renderTree(); }, { passive: false });
+    canvas.addEventListener('wheel', (e) => { e.preventDefault(); treeState.scale = Math.min(2.5, Math.max(0.3, treeState.scale * (e.deltaY > 0 ? 0.9 : 1.1))); renderTree(); }, { passive: false });
     canvas.addEventListener('touchstart', (e) => { const touches = e.touches; if (touches.length === 1) { isDragging = true; dragStart.x = touches[0].clientX - treeState.offsetX; dragStart.y = touches[0].clientY - treeState.offsetY; } else if (touches.length === 2) { isDragging = false; touchStartDist = getTouchDistance(touches); touchStartScale = treeState.scale; } }, { passive: true });
-    canvas.addEventListener('touchmove', (e) => { const touches = e.touches; if (touches.length === 1 && isDragging) { e.preventDefault(); treeState.offsetX = touches[0].clientX - dragStart.x; treeState.offsetY = touches[0].clientY - dragStart.y; renderTree(); } else if (touches.length === 2) { e.preventDefault(); const dist = getTouchDistance(touches); if (touchStartDist > 0) { treeState.scale = Math.min(2.5, Math.max(0.3, touchStartScale * (dist / touchStartDist))); renderTree(); } } }, { passive: false });
+    canvas.addEventListener('touchmove', (e) => {
+        const touches = e.touches;
+        if (touches.length === 1 && isDragging) { e.preventDefault(); treeState.offsetX = touches[0].clientX - dragStart.x; treeState.offsetY = touches[0].clientY - dragStart.y; renderTree(); }
+        else if (touches.length === 2) { e.preventDefault(); const dist = getTouchDistance(touches); if (touchStartDist > 0) { treeState.scale = Math.min(2.5, Math.max(0.3, touchStartScale * (dist / touchStartDist))); renderTree(); } }
+    }, { passive: false });
     canvas.addEventListener('touchend', () => { isDragging = false; touchStartDist = 0; });
     canvas.addEventListener('click', (e) => {
-        const rect = canvas.getBoundingClientRect(), scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
-        const worldX = ((e.clientX - rect.left) * scaleX - treeState.offsetX) / treeState.scale, worldY = ((e.clientY - rect.top) * scaleY - treeState.offsetY) / treeState.scale;
-        let clickedNode = null; for (const node of treeState.nodesList) { if (Math.hypot(worldX - node.x, worldY - node.y) <= 30) { clickedNode = node.name; break; } }
-        if (clickedNode) { const person = peopleData[clickedNode]; if (person.children && person.children.length > 0) toggleNode(clickedNode); else showPersonMediaInModal(clickedNode); }
+        const rect = canvas.getBoundingClientRect(), scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height, worldX = ((e.clientX - rect.left) * scaleX - treeState.offsetX) / treeState.scale, worldY = ((e.clientY - rect.top) * scaleY - treeState.offsetY) / treeState.scale;
+        let clickedNode = null; for (const node of treeState.nodesList) if (Math.hypot(worldX - node.x, worldY - node.y) <= 30) { clickedNode = node.name; break; }
+        if (clickedNode) { const person = peopleData[clickedNode]; if (person.children?.length) toggleNode(clickedNode); else showPersonMediaInModal(clickedNode); }
     });
 }
 function showTreeModal(rootName) { initTree(rootName); bindGestures(); }
 
 function enableUI() {
-    ['startName','searchBtn','treeBtn','statBtn','pairNameA','pairNameB','pairSearchBtn','relFromName','relTerm','relSearchBtn','voiceQueryInput','voiceQueryBtn'].forEach(id => { const el = document.getElementById(id); if (el) el.disabled = false; });
-    const micBtn = document.getElementById('micBtn'); if (micBtn) micBtn.disabled = false;
-    if (isOnline) { selectFolderBtn.disabled = true; selectFolderBtn.textContent = '📂 线上模式已启用'; selectFolderBtn.style.opacity = '0.6'; }
+    document.getElementById('startName').disabled = false; document.getElementById('searchBtn').disabled = false; document.getElementById('treeBtn').disabled = false; document.getElementById('statBtn').disabled = false;
+    document.getElementById('pairNameA').disabled = false; document.getElementById('pairNameB').disabled = false; document.getElementById('pairSearchBtn').disabled = false;
+    document.getElementById('relFromName').disabled = false; document.getElementById('relTerm').disabled = false; document.getElementById('relSearchBtn').disabled = false;
+    document.getElementById('voiceQueryInput').disabled = false; document.getElementById('voiceQueryBtn').disabled = false;
+    if (speechRecognitionSupported) document.getElementById('micBtn').disabled = false;
+    if (isOnline) { selectFolderBtn.disabled = true; selectFolderBtn.textContent = '📂 线上模式已启用'; selectFolderBtn.style.opacity = '0.6'; } else selectFolderBtn.disabled = false;
 }
+
 function search() {
-    const startName = document.getElementById('startName').value.trim(); if (!startName) { outputPre.innerHTML = '<pre>请输入姓名</pre>'; return; } if (!peopleData) { outputPre.innerHTML = '<pre>❌ 数据未加载！请先点击「加载资料库」加载 family_data.jsonl。</pre>'; return; } if (!peopleData[startName]) { outputPre.innerHTML = `<pre>❌ 错误：'${startName}' 不在家谱中。</pre>`; return; }
+    const startName = document.getElementById('startName').value.trim();
+    if (!startName) { outputPre.innerHTML = '<pre>请输入姓名</pre>'; return; }
+    if (!peopleData) { outputPre.innerHTML = '<pre>❌ 数据未加载！请先点击「加载资料库」加载 family_data.jsonl。</pre>'; return; }
+    if (!peopleData[startName]) { outputPre.innerHTML = `<pre>❌ 错误：'${startName}' 不在家谱中。</pre>`; return; }
     outputPre.innerHTML = '<pre>正在查询关系...</pre>';
-    setTimeout(() => { try { const relations = bfsRelationships(startName, peopleData); const outputText = printRelationshipsWithClick(startName, relations, peopleData); outputPre.innerHTML = `<pre>========== 从 ${escapeHtml(startName)} 出发的家族关系树 ==========\n${outputText}</pre>`; bindClickableNames(); } catch (error) { outputPre.innerHTML = `<pre>❌ 检测到数据异常：${error.message}</pre>`; } }, 50);
+    setTimeout(() => { try { const media = buildManualMediaEntry([startName]); outputPre.innerHTML = `<pre>========== 从 ${escapeHtml(startName)} 出发的家族关系树 ==========\n${printRelationshipsWithClick(startName, bfsRelationships(startName, peopleData), peopleData)}</pre>${media}`; bindClickableNames(); } catch (error) { outputPre.innerHTML = `<pre>❌ 检测到数据异常。<br>技术原因：${error.message}</pre>`; } }, 50);
 }
 document.getElementById('searchBtn').addEventListener('click', search);
-function bindClickableNames() { document.querySelectorAll('.clickable-name').forEach(el => { el.onclick = (e) => { const name = e.target.getAttribute('data-name'); if (name && peopleData[name]) showPersonMediaInModal(name); }; }); }
-function makeClickableName(name) { return `<span class="clickable-name" data-name="${escapeHtml(name)}">${escapeHtml(name)}</span>`; }
-document.getElementById('pairSearchBtn').addEventListener('click', () => { const nameA = document.getElementById('pairNameA').value.trim(), nameB = document.getElementById('pairNameB').value.trim(); const result = queryPairRelation(nameA, nameB); outputPre.innerHTML = result.ok ? `<pre>========== 两人关系 ==========\n${makeClickableName(result.nameA)} 称 ${makeClickableName(result.nameB)} 为「${escapeHtml(result.relation)}」</pre>` : `<pre>❌ ${escapeHtml(result.message)}</pre>`; if (result.ok) bindClickableNames(); });
+document.getElementById('pairSearchBtn').addEventListener('click', () => {
+    const nameA = document.getElementById('pairNameA').value.trim();
+    const nameB = document.getElementById('pairNameB').value.trim();
+    const result = queryPairRelation(nameA, nameB);
+    if (!result.ok) { outputPre.innerHTML = `<pre>❌ ${escapeHtml(result.message)}</pre>`; return; }
+    const media = buildManualMediaEntry([result.nameA, result.nameB], nameA);
+    outputPre.innerHTML = `<pre>========== 两人关系 ==========\n${makeClickableName(result.nameA)} 称 ${makeClickableName(result.nameB)} 为「${escapeHtml(result.relation)}」</pre>${media}`;
+    bindClickableNames();
+});
 document.getElementById('pairNameB').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('pairSearchBtn').click(); });
-document.getElementById('relSearchBtn').addEventListener('click', () => { const name = document.getElementById('relFromName').value.trim(), relTerm = document.getElementById('relTerm').value.trim(); const result = queryPersonsByRelation(name, relTerm); if (!result.ok) { outputPre.innerHTML = `<pre>❌ ${escapeHtml(result.message)}</pre>`; return; } const lines = result.matches.map(m => `  ${makeClickableName(m.name)}`).join('\n'); outputPre.innerHTML = `<pre>========== ${escapeHtml(result.name)} 的「${escapeHtml(result.relTerm)}」（共${result.matches.length}人） ==========\n${lines}</pre>`; bindClickableNames(); });
+document.getElementById('relSearchBtn').addEventListener('click', () => {
+    const startPerson = document.getElementById('relFromName').value.trim();
+    const result = queryPersonsByRelation(startPerson, document.getElementById('relTerm').value.trim());
+    if (!result.ok) { outputPre.innerHTML = `<pre>❌ ${escapeHtml(result.message)}</pre>`; return; }
+    const media = buildManualMediaEntry(result.matches.map(m => m.name), startPerson);
+    outputPre.innerHTML = `<pre>========== ${escapeHtml(result.name)} 的「${escapeHtml(result.relTerm)}」（共${result.matches.length}人） ==========\n${result.matches.map(m => `  ${makeClickableName(m.name)}`).join('\n')}</pre>${media}`;
+    bindClickableNames();
+});
 document.getElementById('relTerm').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('relSearchBtn').click(); });
-document.getElementById('treeBtn').addEventListener('click', () => { let startName = document.getElementById('startName').value.trim(); if (!startName) { alert('请先输入一个姓名'); return; } if (!peopleData) { alert('❌ 数据未加载！请先点击「加载资料库」加载 family_data.jsonl。'); return; } if (!peopleData[startName]) { alert(`“${startName}” 不在家谱中`); return; } showTreeModal(startName); });
+document.getElementById('treeBtn').addEventListener('click', () => { let startName = document.getElementById('startName').value.trim(); if (!startName) { alert('请先输入一个姓名'); return; } if (!peopleData) { alert('❌ 数据未加载！'); return; } if (!peopleData[startName]) { alert(`“${startName}” 不在家谱中`); return; } showTreeModal(startName); });
 document.getElementById('startName').addEventListener('keypress', (e) => { if (e.key === 'Enter') search(); });
-document.getElementById('closeTreeModalBtn').onclick = () => { document.getElementById('treeModal').classList.remove('active'); treeState.canvas = null; };
-document.getElementById('treeModal').addEventListener('click', (e) => { if (e.target === document.getElementById('treeModal')) document.getElementById('closeTreeModalBtn').click(); });
-const toTopBtn = document.getElementById('toTopBtn'); window.addEventListener('scroll', () => { toTopBtn.style.display = window.scrollY > 300 ? 'flex' : 'none'; }); toTopBtn.addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+const closeTreeModalBtn = document.getElementById('closeTreeModalBtn');
+closeTreeModalBtn.onclick = () => { document.getElementById('treeModal').classList.remove('active'); treeState.canvas = null; };
+document.getElementById('treeModal').addEventListener('click', (e) => { if (e.target === document.getElementById('treeModal')) closeTreeModalBtn.click(); });
+const toTopBtn = document.getElementById('toTopBtn');
+window.addEventListener('scroll', () => { toTopBtn.style.display = window.scrollY > 300 ? 'flex' : 'none'; });
+toTopBtn.addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+
 async function tryAutoLoad() {
     if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
-        try { const resp = await fetch('family_data.jsonl'); if (resp.ok) { const parsed = parseJsonl(await resp.text()); if (Object.keys(parsed).length > 0) { peopleData = parsed; dataLoaded = true; enableUI(); folderStatusSpan.innerHTML = `✅ 自动加载成功！共 ${Object.keys(peopleData).length} 位人物。`; folderStatusSpan.style.color = '#2c5a2c'; outputPre.innerHTML = `<pre>✅ 自动加载 family_data.jsonl 成功！共 ${Object.keys(peopleData).length} 位人物。<br>AI 管家已就绪，请问有什么可以帮您？</pre>`; document.getElementById('startName').value = peopleData['冯宗德'] ? '冯宗德' : (Object.keys(peopleData)[0] || ''); return; } } } catch(e) { console.warn("自动加载失败，降级至手动授权"); }
+        try { const resp = await fetch('https://fengzd45.github.io/codex1/family_data.jsonl'); if (resp.ok) { const parsed = parseJsonl(await resp.text()); if (Object.keys(parsed).length > 0) { peopleData = parsed; dataLoaded = true; enableUI(); folderStatusSpan.innerHTML = `✅ 自动加载成功！共 ${Object.keys(peopleData).length} 位人物。`; folderStatusSpan.style.color = '#2c5a2c'; outputPre.innerHTML = `<pre>✅ 自动加载 family_data.jsonl 成功！共 ${Object.keys(peopleData).length} 位人物。<br>如需多媒体资料，请点击「加载资料库」授权「资料」文件夹。</pre>`; document.getElementById('startName').value = peopleData['冯宗德'] ? '冯宗德' : (Object.keys(peopleData)[0] || ''); return; } } } catch(e) { console.warn("自动加载失败，降级至手动授权"); }
     }
-    folderStatusSpan.innerHTML = `📁 请点击「加载资料库」选择包含 family_data.jsonl 的文件夹。`; folderStatusSpan.style.color = '#8b5a2b'; outputPre.innerHTML = `<pre>⏳ 未检测到 family_data.jsonl。<br><br>请点击上方「加载资料库」按钮，选择包含该文件及「资料」子文件夹的目录。</pre>`;
+    folderStatusSpan.innerHTML = `📁 请点击「加载资料库」选择包含 family_data.jsonl 的文件夹。`;
+    folderStatusSpan.style.color = '#8b5a2b';
+    outputPre.innerHTML = `<pre>⏳ 未检测到 family_data.jsonl。<br><br>请点击上方「加载资料库」按钮，选择包含该文件及「资料」子文件夹的目录。</pre>`;
 }
-if (isOnline) { tryAutoLoad(); folderStatusSpan.innerHTML = `🌐 线上模式（GitHub Pages）· 资料自动加载，无需授权`; selectFolderBtn.textContent = '📂 线上模式已启用'; selectFolderBtn.disabled = true; selectFolderBtn.style.opacity = '0.6'; loadManifest(); } else { tryAutoLoad(); }
+if (isOnline) { tryAutoLoad(); folderStatusSpan.innerHTML = `🌐 线上模式（GitHub Pages）· 资料自动加载，无需授权`; selectFolderBtn.textContent = '📂 线上模式已启用'; selectFolderBtn.disabled = true; selectFolderBtn.style.opacity = '0.6'; selectFolderBtn.style.cursor = 'default'; loadManifest(); } else { tryAutoLoad(); }
+
 async function loadLocalManifest() { if (!window.rootHandle) return null; try { const fileHandle = await window.rootHandle.getFileHandle('manifest.json'); return JSON.parse(await (await fileHandle.getFile()).text()); } catch (e) { return null; } }
-async function buildManifest() { if (!window.rootHandle) return null; const manifest = {}; try { let dataDir = null; for await (const entry of window.rootHandle.values()) if (entry.kind === 'directory' && entry.name === '资料') { dataDir = entry; break; } if (!dataDir) return null; for await (const entry of dataDir.values()) { if (entry.kind === 'directory') { const personName = entry.name, files = []; try { const personDir = await dataDir.getDirectoryHandle(personName); for await (const fileEntry of personDir.values()) if (fileEntry.kind === 'file') files.push(fileEntry.name); if (files.length > 0) manifest[personName] = files; } catch (e) {} } } } catch (e) { return null; } return manifest; }
-async function saveManifest(manifest) { if (!window.rootHandle) return false; try { const json = JSON.stringify(manifest, null, 2), blob = new Blob([json], { type: 'application/json' }); try { let fileHandle; try { fileHandle = await window.rootHandle.getFileHandle('manifest.json'); } catch (e) { fileHandle = await window.rootHandle.getFileHandle('manifest.json', { create: true }); } const writable = await fileHandle.createWritable(); await writable.write(blob); await writable.close(); return true; } catch (e) { const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = 'manifest.json'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); return true; } } catch (e) { return false; } }
+async function buildManifest() {
+    if (!window.rootHandle) return null; const manifest = {};
+    try {
+        let dataDir = null; for await (const entry of window.rootHandle.values()) if (entry.kind === 'directory' && entry.name === '资料') { dataDir = entry; break; }
+        if (!dataDir) return null;
+        for await (const entry of dataDir.values()) {
+            if (entry.kind === 'directory') {
+                const personName = entry.name, files = [];
+                try { const personDir = await dataDir.getDirectoryHandle(personName); for await (const fileEntry of personDir.values()) if (fileEntry.kind === 'file') files.push(fileEntry.name); if (files.length > 0) manifest[personName] = files; } catch (e) {}
+            }
+        }
+    } catch (e) { return null; } return manifest;
+}
+async function saveManifest(manifest) {
+    if (!window.rootHandle) return false;
+    try {
+        const json = JSON.stringify(manifest, null, 2), blob = new Blob([json], { type: 'application/json' });
+        try {
+            let fileHandle; try { fileHandle = await window.rootHandle.getFileHandle('manifest.json'); } catch (e) { fileHandle = await window.rootHandle.getFileHandle('manifest.json', { create: true }); }
+            const writable = await fileHandle.createWritable(); await writable.write(blob); await writable.close(); return true;
+        } catch (e) { const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = 'manifest.json'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); return true; }
+    } catch (e) { return false; }
+}
 async function showStatModal() {
     const statBody = document.getElementById('statModalBody'); statBody.innerHTML = '<div class="stat-empty">⏳ 正在统计资料，请稍候...</div>'; statModal.classList.add('active');
     try {
-        let stats = []; const names = Object.keys(peopleData || {}); if (names.length === 0) { statBody.innerHTML = '<div class="stat-empty">⚠️ 家谱数据未加载，请先加载资料库。</div>'; return; }
+        let stats = [], names = Object.keys(peopleData || {});
+        if (!names.length) { statBody.innerHTML = '<div class="stat-empty">⚠️ 家谱数据未加载，请先加载资料库。</div>'; return; }
         if (isOnline) {
             statBody.innerHTML = '<div class="stat-empty">🌐 线上模式，从 GitHub 加载 manifest...</div>';
-            try { const resp = await fetch('https://fengzd45.github.io/codex1/manifest.json'); if (resp.ok) { const manifest = await resp.json(), nameSet = new Set(names); for (const [name, files] of Object.entries(manifest)) { if (!nameSet.has(name) || files.length === 0) continue; let txtCount = 0, imgCount = 0, vidCount = 0; for (const fname of files) { const ext = fname.split('.').pop().toLowerCase(); if (['txt', 'md', 'json'].includes(ext)) txtCount++; else if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) imgCount++; else if (['mp4','webm','avi','mov','mp3','wav','flac','aac'].includes(ext)) vidCount++; else txtCount++; } stats.push({ name, txt: txtCount, img: imgCount, vid: vidCount, total: files.length }); } } else throw new Error('manifest.json 不存在'); } catch (e) { statBody.innerHTML = `<div class="stat-empty">❌ 线上模式需要 manifest.json，请先运行 build_manifest.py 生成并推送。</div>`; return; }
+            try {
+                const resp = await fetch('https://fengzd45.github.io/codex1/manifest.json');
+                if (resp.ok) { const manifest = await resp.json(), nameSet = new Set(names); for (const [name, files] of Object.entries(manifest)) { if (!nameSet.has(name) || !files.length) continue; let txtCount = 0, imgCount = 0, vidCount = 0; for (const fname of files) { const ext = fname.split('.').pop().toLowerCase(); if (['txt','md','json'].includes(ext)) txtCount++; else if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) imgCount++; else if (['mp4','webm','avi','mov','mp3','wav','flac','aac'].includes(ext)) vidCount++; else txtCount++; } stats.push({ name, txt: txtCount, img: imgCount, vid: vidCount, total: files.length }); } }
+                else throw new Error('manifest.json 不存在');
+            } catch (e) { statBody.innerHTML = `<div class="stat-empty">❌ 线上模式需要 manifest.json，请先运行 build_manifest.py 生成并推送。</div>`; return; }
         } else {
-            let manifest = null; try { const resp = await fetch('manifest.json'); if (resp.ok) manifest = await resp.json(); } catch (e) {}
-            if (!manifest || Object.keys(manifest).length === 0) { if (!window.rootHandle) { statBody.innerHTML = '<div class="stat-empty">⚠️ 请先点击「加载资料库」授权文件夹（需要根目录权限）。</div>'; return; } manifest = await loadLocalManifest(); if (!manifest || Object.keys(manifest).length === 0) { statBody.innerHTML = '<div class="stat-empty">📂 未找到 manifest.json，正在自动生成...</div>'; manifest = await buildManifest(); if (!manifest || Object.keys(manifest).length === 0) { statBody.innerHTML = '<div class="stat-empty">❌ 未找到任何资料文件。<br>请确保「资料」文件夹下有人物子文件夹。</div>'; return; } const saved = await saveManifest(manifest); statBody.innerHTML = saved ? '<div class="stat-empty">✅ 已自动生成 manifest.json 并保存到根目录。</div>' : '<div class="stat-empty">⚠️ manifest.json 生成成功，但保存失败。<br>请手动将下载的文件放到根目录。</div>'; } }
-            const nameSet = new Set(names); for (const [name, files] of Object.entries(manifest)) { if (!nameSet.has(name) || files.length === 0) continue; let txtCount = 0, imgCount = 0, vidCount = 0; for (const fname of files) { const ext = fname.split('.').pop().toLowerCase(); if (['txt', 'md', 'json'].includes(ext)) txtCount++; else if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) imgCount++; else if (['mp4','webm','avi','mov','mp3','wav','flac','aac'].includes(ext)) vidCount++; else txtCount++; } stats.push({ name, txt: txtCount, img: imgCount, vid: vidCount, total: files.length }); }
+            let manifest = null;
+            try { const resp = await fetch('manifest.json'); if (resp.ok) manifest = await resp.json(); } catch (e) {}
+            if (!manifest || !Object.keys(manifest).length) {
+                if (!window.rootHandle) { statBody.innerHTML = '<div class="stat-empty">⚠️ 请先点击「加载资料库」授权文件夹（需要根目录权限）。</div>'; return; }
+                manifest = await loadLocalManifest();
+                if (!manifest || !Object.keys(manifest).length) {
+                    statBody.innerHTML = '<div class="stat-empty">📂 未找到 manifest.json，正在自动生成...</div>'; manifest = await buildManifest();
+                    if (!manifest || !Object.keys(manifest).length) { statBody.innerHTML = '<div class="stat-empty">❌ 未找到任何资料文件。<br>请确保「资料」文件夹下有人物子文件夹。</div>'; return; }
+                    const saved = await saveManifest(manifest); if (saved) statBody.innerHTML = '<div class="stat-empty">✅ 已自动生成 manifest.json 并保存到根目录。</div>'; else statBody.innerHTML = '<div class="stat-empty">⚠️ manifest.json 生成成功，但保存失败。<br>请手动将下载的文件放到根目录。</div>';
+                }
+            }
+            const nameSet = new Set(names); for (const [name, files] of Object.entries(manifest)) { if (!nameSet.has(name) || !files.length) continue; let txtCount = 0, imgCount = 0, vidCount = 0; for (const fname of files) { const ext = fname.split('.').pop().toLowerCase(); if (['txt','md','json'].includes(ext)) txtCount++; else if (['jpg','jpeg','png','gif','webp','bmp','svg'].includes(ext)) imgCount++; else if (['mp4','webm','avi','mov','mp3','wav','flac','aac'].includes(ext)) vidCount++; else txtCount++; } stats.push({ name, txt: txtCount, img: imgCount, vid: vidCount, total: files.length }); }
         }
-        stats.sort((a,b) => b.total - a.total); if (stats.length === 0) { statBody.innerHTML = '<div class="stat-empty">📭 暂未找到任何有资料的人物。</div>'; return; }
-        let html = `<div class="stat-summary">📊 共 ${stats.length} 位人物有资料，总文件数 ${stats.reduce((s,o) => s + o.total, 0)}</div>`; html += `<table class="stat-table"><thead><tr><th>姓名</th><th class="num">📄 文章</th><th class="num">🖼️ 图片</th><th class="num">🎵 音视频</th><th class="num">📦 合计</th></tr></thead><tbody>`; for (const s of stats) html += `<tr><td><span class="clickable-name" data-name="${escapeHtml(s.name)}">${escapeHtml(s.name)}</span></td><td class="num">${s.txt}</td><td class="num">${s.img}</td><td class="num">${s.vid}</td><td class="num"><strong>${s.total}</strong></td></tr>`; html += `</tbody></table>`; statBody.innerHTML = html;
-        statBody.querySelectorAll('.clickable-name').forEach(el => { el.onclick = function(e) { e.stopPropagation(); e.preventDefault(); const name = this.getAttribute('data-name'); if (name && peopleData[name]) { _fromStatModal = true; statModal.classList.remove('active'); requestAnimationFrame(() => { setTimeout(() => { showPersonMediaInModal(name); }, 50); }); } return false; }; });
+        stats.sort((a,b) => b.total - a.total);
+        if (!stats.length) { statBody.innerHTML = '<div class="stat-empty">📭 暂未找到任何有资料的人物。</div>'; return; }
+        let html = `<div class="stat-summary">📊 共 ${stats.length} 位人物有资料，总文件数 ${stats.reduce((s,o) => s + o.total, 0)}</div><table class="stat-table"><thead><tr><th>姓名</th><th class="num">📄 文章</th><th class="num">🖼️ 图片</th><th class="num">🎵 音视频</th><th class="num">📦 合计</th></tr></thead><tbody>`;
+        for (const s of stats) html += `<tr><td><span class="clickable-name" data-name="${escapeHtml(s.name)}">${escapeHtml(s.name)}</span></td><td class="num">${s.txt}</td><td class="num">${s.img}</td><td class="num">${s.vid}</td><td class="num"><strong>${s.total}</strong></td></tr>`;
+        html += `</tbody></table>`; statBody.innerHTML = html;
+        statBody.querySelectorAll('.clickable-name').forEach(el => { el.onclick = function(e) { e.stopPropagation(); e.preventDefault(); const name = this.getAttribute('data-name'); if (name && peopleData[name]) { _fromStatModal = true; statModal.classList.remove('active'); requestAnimationFrame(() => setTimeout(() => showPersonMediaInModal(name), 50)); } return false; }; });
     } catch (err) { statBody.innerHTML = `<div class="stat-empty">❌ 统计失败: ${err.message}</div>`; }
 }
 document.getElementById('statBtn').addEventListener('click', showStatModal);
 </script>
 </body>
 </html>
+
