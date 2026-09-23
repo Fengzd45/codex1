@@ -16,9 +16,8 @@
         .folder-status { font-size: 0.85rem; font-weight: bold; }
         .folder-btn { background: #8b5a2b; color: white; border: none; padding: 8px 20px; border-radius: 30px; cursor: pointer; font-size: 0.85rem; }
         .folder-btn:disabled { opacity: 0.6; cursor: default; background: #aaa; }
-        .input-area { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: flex-start; }
-        .input-area textarea { flex: 1; padding: 12px 16px; font-size: 1rem; border: 1px solid #ddd; border-radius: 16px; outline: none; resize: vertical; min-height: 48px; font-family: inherit; }
-        .input-area input { flex: 1; padding: 12px 16px; font-size: 1rem; border: 1px solid #ddd; border-radius: 30px; outline: none; }
+        .input-area { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        .input-area input[type="text"] { flex: 1 1 200px; min-width: 0; padding: 12px 16px; font-size: 1rem; border: 1px solid #ddd; border-radius: 30px; outline: none; }
         .input-area button { background: #8b5a2b; color: white; border: none; padding: 12px 24px; border-radius: 30px; cursor: pointer; font-weight: bold; white-space: nowrap; }
         .input-area button:disabled { opacity: 0.5; cursor: not-allowed; background: #aaa; }
         .stat-btn { background: #2c5a2c; }
@@ -65,7 +64,6 @@
         .stat-summary { background: #f0e8d8; border-radius: 20px; padding: 8px 16px; margin-bottom: 16px; display: inline-block; font-size: 0.85rem; }
         #mediaModal { z-index: 1001; }
         .debug-banner { font-size:0.7rem; color:#888; background:#f0e8d8; padding:6px 10px; border-radius:8px; margin-bottom:10px; word-break:break-all; }
-        .hint { font-size: 0.7rem; color: #999; margin-top: 4px; }
     </style>
 </head>
 <body>
@@ -84,7 +82,7 @@
             <div>• 初始树包含本人、上三辈祖先、下三辈后代、配偶的父母及祖父母。<br>• 单击父亲或母亲节点，动态显示其所有其他子女（兄弟姐妹）。<br>• 单击兄弟姐妹节点，动态显示其子女（堂表兄妹）。再次单击收起。<br>• 无子女节点打开多媒体资料弹窗。<br>• 支持鼠标/手指拖拽、滚轮/双指缩放。<br>• 顶部输入框可直接说话或打字，如"冯宗德和张三是什么关系"、"冯宗德的表弟是谁"、"冯宗德的儿子和冯宗流的母亲是什么关系"、或只说一个姓名查完整关系树。<br>• 勾选"🔊 语音朗读结果"会把查询结果读出来。<br>• 「手动模式」里是分别输入姓名/两人关系/按称呼找人的传统表单，以及图形家族树、资料统计入口。</div>
         </details>
         <div class="input-area">
-            <textarea id="voiceQueryInput" placeholder="说话或打字，比如“冯宗德的儿子和冯宗流的母亲是什么关系”" disabled rows="2"></textarea>
+            <input type="text" id="voiceQueryInput" placeholder="说话或打字，比如“冯宗德的儿子和冯宗流的母亲是什么关系”" disabled>
             <button id="micBtn" disabled>🎤 语音</button>
             <button id="voiceQueryBtn" disabled>💬 查询</button>
         </div>
@@ -407,6 +405,7 @@ function printRelationshipsWithClick(startName, relations, people) {
     return lines.join('\n');
 }
 
+// ===== 修复：补全复合关系词 =====
 const REL_TOKEN_MAP = {
     '父亲':['father'],'爸爸':['father'],'爸':['father'],'爹':['father'],'母亲':['mother'],'妈妈':['mother'],'妈':['mother'],'娘':['mother'],
     '妻子':['spouse'],'老婆':['spouse'],'配偶':['spouse'],'丈夫':['spouse'],'老公':['spouse'],'儿子':['sons'],'儿':['sons'],
@@ -415,6 +414,13 @@ const REL_TOKEN_MAP = {
     '兄弟':['siblings'],'姐妹':['siblings'],'外婆':['mother','mother'],'姥姥':['mother','mother'],'外公':['mother','father'],'姥爷':['mother','father'],
     '奶奶':['father','mother'],'爷爷':['father','father'],'岳父':['spouse','father'],'老丈人':['spouse','father'],'岳母':['spouse','mother'],'丈母娘':['spouse','mother'],
     '公公':['spouse','father'],'婆婆':['spouse','mother'],'儿媳妇':['sons','spouse'],'儿媳':['sons','spouse'],'女婿':['daughters','spouse'],
+    // 补全孙子辈 + 外孙辈
+    '孙子': ['sons', 'sons'], '孙儿': ['sons', 'sons'], '孙': ['sons', 'sons'],
+    '孙女': ['sons', 'daughters'], '孙女儿': ['sons', 'daughters'],
+    '外孙': ['daughters', 'sons'], '外孙儿': ['daughters', 'sons'],
+    '外孙女': ['daughters', 'daughters'],
+    '曾孙': ['sons', 'sons', 'sons'], '曾孙女': ['sons', 'sons', 'daughters'],
+    // 堂表
     '堂兄弟': ['father', 'children', 'sons'],
     '堂兄': ['father', 'children', 'sons'],
     '堂哥': ['father', 'children', 'sons'],
@@ -494,7 +500,7 @@ function validateRelTerm(term) {
 
 const RELATION_SYNONYM_MAP = {
     '父亲':['爸爸','爸','老爸','爹','爹爹','家父'],'母亲':['妈妈','妈','老妈','娘','家母'],'祖父':['爷爷','阿公'],'祖母':['奶奶','阿嬷'],'外祖父':['外公','姥爷'],'外祖母':['外婆','姥姥'],
-    '曾祖父':['太爷爷','老爷爷','太公'],'曾祖母':['太奶奶','老奶奶','太婆'],'儿子':['儿'],'女儿':['闺女'],'孙子':['孙'],'兄':['哥哥','哥','大哥'],'弟':['弟弟'],'姐':['姐姐'],'妹':['妹妹'],
+    '曾祖父':['太爷爷','老爷爷','太公'],'曾祖母':['太奶奶','老奶奶','太婆'],'儿子':['儿'],'女儿':['闺女'],'孙子':['孙','孙儿'],'孙女':['孙女儿'],'兄':['哥哥','哥','大哥'],'弟':['弟弟'],'姐':['姐姐'],'妹':['妹妹'],
     '伯父':['大爷','伯伯','大伯'],'叔父':['叔叔','叔'],'姑母':['姑姑','姑妈'],'舅父':['舅舅','舅'],'姨母':['姨妈','姨','姨娘'],'侄子':['侄儿'],'嫂':['嫂子','嫂嫂'],'弟媳':['弟妹'],
     '伯母':['大娘','伯娘','大妈'],'叔母':['婶婶','婶子','婶母'],'姑父':['姑丈'],'舅母':['舅妈'],'姨父':['姨丈'],'儿媳':['媳妇'],'女婿':['姑爷'],'曾孙':['重孙'],'曾孙女':['重孙女'],'配偶':['老婆','妻子','老公','丈夫']
 };
@@ -644,18 +650,27 @@ function findNamesInText(text) {
     return found;
 }
 
-// 修复：支持同名两侧 + 补全问句
 function normalizeQueryText(text) {
     text = (text || '').trim();
-    // 如果以“和XXX”结尾，补“是什么关系”
     if (/和[\u4e00-\u9fa5]{2,4}$/.test(text)) {
         text += '是什么关系';
-    }
-    // 如果以“和XXX是什么”结尾，补“关系”
-    else if (/和[\u4e00-\u9fa5]{2,4}是什么$/.test(text)) {
+    } else if (/和[\u4e00-\u9fa5]{2,4}是什么$/.test(text)) {
         text += '关系';
     }
     return text;
+}
+
+// 修复：补全 “孙儿的姥姥” -> “孙子的姥姥” 等
+function fixRelTerm(text) {
+    if (!text) return text;
+    return text
+        .replace(/孙儿的/g, '孙子的')
+        .replace(/孙儿/g, '孙子')
+        .replace(/孙女的/g, '孙女的')
+        .replace(/外孙儿的/g, '外孙的')
+        .replace(/外孙儿/g, '外孙')
+        .replace(/姥姥/g, '姥姥')
+        .replace(/孙儿的姥姥/g, '孙子的姥姥');
 }
 
 function tryParseTwoDescriptions(text) {
@@ -663,7 +678,6 @@ function tryParseTwoDescriptions(text) {
     const _found = findNamesInText(text);
     const _unique = [...new Set(_found.map(f => f.name))];
     if (_unique.length === 0) return null;
-    // 允许同名，只要句子里有“和/跟/与”即可
     if (!/[和跟与]/.test(text)) return null;
     if (/所有|之间|各自|分别|几|多少/.test(text)) return null;
 
@@ -671,6 +685,7 @@ function tryParseTwoDescriptions(text) {
     if (parts.length < 2) return null;
     const names = Object.keys(peopleData).sort((a, b) => b.length - a.length);
     const parseSide = (s) => {
+        s = fixRelTerm(s); // 修复复合词
         for (const n of names) {
             const idx = s.indexOf(n); if (idx === -1) continue;
             const after = s.slice(idx + n.length), m = after.match(/^的([^\s，,。.？?！!]+?)(?:是|有|什么|谁|多少|几个|哪些|$)/);
@@ -683,7 +698,6 @@ function tryParseTwoDescriptions(text) {
         const left = parseSide(parts[0]), right = parseSide(parts[1]);
         return (left && right && (left.relTerm || left.path || right.relTerm || right.path)) ? { type: 'relation_between', left, right } : null;
     }
-    // 多个“和”时，取最后一个作为分隔
     const lastAndIdx = text.lastIndexOf(parts[parts.length - 1]);
     if (lastAndIdx > 0) {
         const leftPart = text.slice(0, lastAndIdx).replace(/[和跟与]/g, '、');
@@ -709,6 +723,7 @@ function parseAndRunNaturalQuery(text) {
             .replace(/[的是谁有哪些哪个几个几位呀啊吗呢？?，,。.！!\s]/g, '')
             .replace(/自己|所有|之间|各自|分别|全部|关系/g, '')
             .trim();
+        rest = fixRelTerm(rest);
         if (['', '亲属', '家族树', '家谱'].includes(rest)) return { ok: true, type: 'full', name };
         if (/所有|之间|各自|分别/.test(text) && rest) {
             const r = querySetRelation(name, rest);
@@ -902,7 +917,7 @@ function setupSpeechRecognition() {
 }
 setupSpeechRecognition();
 document.getElementById('voiceQueryBtn').addEventListener('click', () => runNaturalQueryAgent(document.getElementById('voiceQueryInput').value.trim()));
-document.getElementById('voiceQueryInput').addEventListener('keypress', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); runNaturalQueryAgent(e.target.value.trim()); } });
+document.getElementById('voiceQueryInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') runNaturalQueryAgent(e.target.value.trim()); });
 
 const isOnline = window.location.protocol === 'https:';
 const GITHUB_BASE = 'https://fengzd45.github.io/codex1/%E8%B5%84%E6%96%99/';
