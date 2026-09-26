@@ -80,7 +80,7 @@
         </div>
         <details class="manual">
             <summary>📖 使用说明</summary>
-            <div>• 初始树包含本人、上三辈祖先、下三辈后代、配偶的父母及祖父母。<br>• 单击父亲或母亲节点，动态显示其所有其他子女（兄弟姐妹）。<br>• 单击兄弟姐妹节点，动态显示其子女（堂表兄妹）。再次单击收起。<br>• 无子女节点打开多媒体资料弹窗。<br>• 支持鼠标/手指拖拽、滚轮/双指缩放。<br>• 顶部输入框可直接说话或打字，如"冯宗德和张三是什么关系"、"冯宗德的表弟是谁"、"冯宗德的儿子和冯宗流的母亲是什么关系"、或只说一个姓名查完整关系树。<br>• 勾选"🔊 语音朗读结果"会把查询结果读出来。<br>• 「手动模式」里是分别输入姓名/两人关系/按称呼找人的传统表单，以及图形家族树、资料统计入口。<br>• 每次查询结果下方都会出现多媒体资料入口：单人结果给被查人资料，多人结果给发起查询人的资料。</div>
+            <div>• 初始树包含本人、上三辈祖先、下三辈后代、配偶的父母及祖父母。<br>• 单击父亲或母亲节点，动态显示其所有其他子女（兄弟姐妹）。<br>• 单击兄弟姐妹节点，动态显示其子女（堂表兄妹）。再次单击收起。<br>• 无子女节点打开多媒体资料弹窗。<br>• 支持鼠标/手指拖拽、滚轮/双指缩放。<br>• 顶部输入框可直接说话或打字，如"冯宗德和张三是什么关系"、"冯宗德的表弟是谁"、"冯宗德的儿子和冯宗流的母亲是什么关系"、或只说一个姓名查完整关系树。<br>• 勾选"🔊 语音朗读结果"会把查询结果读出来。<br>• 「手动模式」里是分别输入姓名/两人关系/按称呼找人的传统表单，以及图形家族树、资料统计入口。<br>• 每次查询结果下方都会出现多媒体资料入口：单人结果给被查人资料，多人结果给发起查询人的资料。<br>• 问题分两类：<b>简单问题</b>（如"冯宗德的表弟是谁"）由本地规则处理；<b>复合问题</b>（如"冯宗德的儿子和冯宗流的母亲是什么关系"）直接交给 AI。AI 失败会明确告知，不假装"兜底成功"。</div>
         </details>
         <div class="input-area">
             <input type="text" id="voiceQueryInput" placeholder="说话或打字，比如“冯宗德的儿子和冯宗流的母亲是什么关系”" disabled>
@@ -156,7 +156,16 @@
 </div>
 <script src="https://unpkg.com/pinyin-pro"></script>
 <script>
-const AGENT_CONFIG = { workerUrl: 'https://family-ai-proxy.fengzd8.workers.dev', enabled: true, timeout: 5000 };
+// ============================================================
+// AI 配置
+//   model 可选：'deepseek-flash'（快、省）或 'deepseek-v4-pro'（更强）
+// ============================================================
+const AGENT_CONFIG = {
+    workerUrl: 'https://family-ai-proxy.fengzd8.workers.dev',
+    enabled: true,
+    timeout: 5000,
+    model: 'deepseek-flash'
+};
 
 class Person {
     constructor(data) {
@@ -697,13 +706,72 @@ function runNaturalQuery(text) {
     if (document.getElementById('ttsToggle').checked) speak(speakText || (result && result.message) || '');
 }
 
-async function runNaturalQueryAgent(text) {
-    text = (text || '').trim(); if (!text) return;
-    if (!peopleData) { outputPre.innerHTML = '<pre>数据未加载，请先点击「加载资料库」。</pre>'; return; }
+// ============================================================
+// 显式路由：判断问题类型
+// ============================================================
 
+// 复合关系问题：本地规则设计上不支持，必须走 AI
+// 例如："冯宗德的儿子和冯宗流的母亲是什么关系"
+function looksComplexQuery(text) {
+    if (!text || !peopleData) return false;
+    const t = text.replace(/\s/g, '');
+    // 1) 显式问"两者之间关系"、"互相"、"彼此"
+    if (/之间.*关系|互相|彼此/.test(t)) return true;
+    // 2) 出现 >= 2 个人名，且至少一个人名后面接"的X"结构
+    const found = findNamesInText(t);
+    if (found.length >= 2) {
+        let withDe = 0;
+        for (const f of found) {
+            const after = t.slice(f.pos + f.name.length);
+            if (/^的[^和跟与]{1,10}/.test(after)) withDe++;
+        }
+        if (withDe >= 1) return true;
+    }
+    return false;
+}
+
+// AI 通道：成功就显示，失败就明确说失败，不回退本地
+async function runAIQuery(text) {
+    outputPre.innerHTML = '<pre>🤖 AI 正在理解你的问题...</pre>';
+    try {
+        const result = await aiCallAgent(text);
+        const speakText = renderNaturalQueryResult(result, text);
+        if (document.getElementById('ttsToggle').checked) speak(speakText || (result && result.message) || '');
+    } catch (e) {
+        window._lastIR = null;
+        const reason = (e && e.message) ? e.message : '未知错误';
+        outputPre.innerHTML = `<pre>❌ AI 没能理解这个问题。
+原因：${escapeHtml(reason)}
+
+建议：换个说法，或用下方「手动模式」逐个查询。</pre>`;
+        if (document.getElementById('ttsToggle').checked) speak('AI 没能理解这个问题，请换个说法。');
+    }
+}
+
+async function runNaturalQueryAgent(text) {
+    text = (text || '').trim();
+    if (!text) return;
+    if (!peopleData) {
+        outputPre.innerHTML = '<pre>数据未加载，请先点击「加载资料库」。</pre>';
+        return;
+    }
+
+    // 拼音纠错（只影响可能含人名的情况）
     const correctedText = correctNamesByPinyin(text);
     if (correctedText !== text) text = correctedText;
 
+    // ---------- 路由 ----------
+    if (looksComplexQuery(text)) {
+        // 复合关系问题：本地规则设计上不支持，直接交给 AI
+        if (!AGENT_CONFIG.enabled) {
+            outputPre.innerHTML = '<pre>⚠️ 这是复合关系问题，需要 AI 处理，但 AI 管家已关闭。</pre>';
+            return;
+        }
+        await runAIQuery(text);
+        return;
+    }
+
+    // ---------- 简单问题：本地优先 ----------
     const localResult = parseAndRunNaturalQuery(text);
     if (localResult && localResult.ok) {
         const speakText = renderNaturalQueryResult(localResult, text);
@@ -711,20 +779,14 @@ async function runNaturalQueryAgent(text) {
         return;
     }
 
+    // 简单问题但本地失败：AI 再试一次（第二选择，不是"兜底"）
     if (!AGENT_CONFIG.enabled) {
         renderNaturalQueryResult(localResult, text);
         return;
     }
-    outputPre.innerHTML = '<pre>🤖 AI 管家正在理解你的问题...</pre>';
-    try {
-        const result = await aiCallAgent(text);
-        const speakText = renderNaturalQueryResult(result, text);
-        if (document.getElementById('ttsToggle').checked) speak(speakText || (result && result.message) || '');
-    } catch (e) {
-        window._lastIR = null;
-        renderNaturalQueryResult(localResult, text);
-    }
+    await runAIQuery(text);
 }
+
 const IR_SYSTEM_PROMPT = `你是一个"家谱问句翻译器"。你的唯一任务是：把用户的中文家谱问句翻译成一个 JSON 对象。
 你不需要回答问题，不需要解释，不需要调用任何工具，只输出 JSON。
 【输出格式】只允许下面几种 type：
@@ -788,8 +850,22 @@ function execIR(ir) {
     }
 }
 
+// ============================================================
+// AI 调用：请求体加 model: AGENT_CONFIG.model
+// ============================================================
 async function aiCallAgent(text) {
-    const resp = await fetchWithTimeout(AGENT_CONFIG.workerUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [{ role: 'system', content: IR_SYSTEM_PROMPT }, { role: 'user', content: text }], response_format: { type: 'json_object' } }) }, AGENT_CONFIG.timeout);
+    const resp = await fetchWithTimeout(AGENT_CONFIG.workerUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: AGENT_CONFIG.model,
+            messages: [
+                { role: 'system', content: IR_SYSTEM_PROMPT },
+                { role: 'user', content: text }
+            ],
+            response_format: { type: 'json_object' }
+        })
+    }, AGENT_CONFIG.timeout);
     if (!resp.ok) throw new Error(`Worker 返回 ${resp.status}：${(await resp.text().catch(() => '')).slice(0, 200)}`);
     const data = await resp.json(), msg = data.choices?.[0]?.message;
     if (!msg || !msg.content) throw new Error('Worker 返回格式异常');
@@ -828,7 +904,15 @@ function tryParseTwoDescriptions(text) {
     return null;
 }
 
-function aiUpdateStatusLine() { const line = document.getElementById('aiStatusLine'); if (line) line.textContent = AGENT_CONFIG.enabled ? '🤖 AI 管家已启用（本地优先，AI 兜底，5 秒超时）' : '🤖 AI 管家已关闭，使用规则匹配'; }
+// ============================================================
+// 状态行：显示模型名 + 路由策略
+// ============================================================
+function aiUpdateStatusLine() {
+    const line = document.getElementById('aiStatusLine');
+    if (line) line.textContent = AGENT_CONFIG.enabled
+        ? `🤖 AI 管家已启用（模型：${AGENT_CONFIG.model}）｜复合问题走 AI，简单问题走本地，5 秒超时`
+        : '🤖 AI 管家已关闭，仅使用本地规则匹配';
+}
 aiUpdateStatusLine();
 
 function speak(text) { if (!text || !window.speechSynthesis) return; try { window.speechSynthesis.cancel(); const utter = new SpeechSynthesisUtterance(text); utter.lang = 'zh-CN'; window.speechSynthesis.speak(utter); } catch (e) {} }
@@ -1141,4 +1225,3 @@ document.getElementById('statBtn').addEventListener('click', showStatModal);
 </script>
 </body>
 </html>
-
